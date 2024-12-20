@@ -21,12 +21,7 @@
 
 #include <type_traits>
 #include <utility>
-
-namespace _PathGenerator_
-{
-    void wait(std::uint32_t __timeout) noexcept;
-
-}  // namespace _PathGenerator_
+#include <thread>
 
 template<typename _Combination, typename _ElementType, std::size_t _Dimension>
 class PathGenerator
@@ -77,7 +72,10 @@ public:
     [[nodiscard]]
     inline point_type get() const
     {
-        _PathGenerator_::wait(_M_slowDown);
+        if (_M_slowDown)
+        {
+            std::this_thread::sleep_for(std::chrono::milliseconds(_M_slowDown));
+        }
 
         return _M_get();
     }
