@@ -2071,27 +2071,27 @@ Win::Message Win::waitCurrentThreadMsg(Win::Message::msg_type __msg) noexcept
     return Win::Message(msg.message, msg.wParam, msg.lParam);
 }
 
-void Win::clear(Win::Timeout __timeout) const noexcept
+void Win::sendClearMsg(Win::Timeout __timeout) const noexcept
 {
     _M_sendMessageW(WM_CLEAR, 0, 0, __timeout);
 }
 
-void Win::copy(Win::Timeout __timeout) const noexcept
+void Win::sendCopyMsg(Win::Timeout __timeout) const noexcept
 {
     _M_sendMessageW(WM_COPY, 0, 0, __timeout);
 }
 
-void Win::cut(Win::Timeout __timeout) const noexcept
+void Win::sendCutMsg(Win::Timeout __timeout) const noexcept
 {
     _M_sendMessageW(WM_CUT, 0, 0, __timeout);
 }
 
-void Win::paste(Win::Timeout __timeout) const noexcept
+void Win::sendPasteMsg(Win::Timeout __timeout) const noexcept
 {
     _M_sendMessageW(WM_PASTE, 0, 0, __timeout);
 }
 
-void Win::undo(Win::Timeout __timeout) const noexcept
+void Win::sendUndoMsg(Win::Timeout __timeout) const noexcept
 {
     _M_sendMessageW(WM_UNDO, 0, 0, __timeout);
 }
@@ -2119,7 +2119,7 @@ void Win::setShortcut(Win::Shortcut __shortcut, bool __enable) const noexcept
     }
 }
 
-void Win::_S_bindShortcutToFunction_Proc() noexcept
+void Win::_S_globalShortcutBindingProc() noexcept
 {
     _Win_Static_Begin_
 
@@ -2140,12 +2140,12 @@ void Win::_S_bindShortcutToFunction_Proc() noexcept
 
         if (msg.message == WM_TIMER)
         {
-            _S_bindShortcutToFunction_Data->_M_tryTodo();
+            _S_globalShortcutBindingData->_M_tryTodo();
         } else
 
         if (msg.message == WM_HOTKEY)
         {
-            auto [func, param] = _S_bindShortcutToFunction_Data->_M_find(
+            auto [func, param] = _S_globalShortcutBindingData->_M_find(
                 Win::Shortcut::fromId(static_cast<int>(msg.wParam)));
 
             (*func)(param);
@@ -2163,26 +2163,26 @@ void Win::bindShortcutToFunction(
 {
     if (__enable)
     {
-        if (_S_bindShortcutToFunction_Data == nullptr)
+        if (_S_globalShortcutBindingData == nullptr)
         {
-            _S_bindShortcutToFunction_Data =
-                new BindShortcutToFunction_Data(
-                    &Win::_S_bindShortcutToFunction_Proc);
+            _S_globalShortcutBindingData =
+                new GlobalShortcutBindingData(
+                    &Win::_S_globalShortcutBindingProc);
         }
 
-        _S_bindShortcutToFunction_Data->_M_applyRegister(
+        _S_globalShortcutBindingData->_M_applyRegister(
             __shortcut,
             __function,
             __param);
     }
     else
     {
-        if (_S_bindShortcutToFunction_Data == nullptr)
+        if (_S_globalShortcutBindingData == nullptr)
         {
             return;
         }
 
-        _S_bindShortcutToFunction_Data->_M_applyUnregister(__shortcut);
+        _S_globalShortcutBindingData->_M_applyUnregister(__shortcut);
     }
 }
 
@@ -2190,7 +2190,7 @@ Win::ShortcutFunction Win::functionFromBoundShortcut(
     Win::Shortcut __shortcut,
     Win::ShortcutFunctionParam* __param) noexcept
 {
-    auto [func, param] = _S_bindShortcutToFunction_Data->_M_find(__shortcut);
+    auto [func, param] = _S_globalShortcutBindingData->_M_find(__shortcut);
 
     if (__param != nullptr)
     {
@@ -2209,12 +2209,6 @@ Win::Painter* Win::screenPainter() noexcept
 {
     static Win::Painter p(nullptr);
     return &p;
-}
-
-Win::Color Win::colorUnder(
-    const Win::Point& __point) const noexcept
-{
-    return painter()->colorUnder(__point);
 }
 
 Win::ModalDialogButtonsId Win::createModalDialogBox(

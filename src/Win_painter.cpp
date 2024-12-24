@@ -185,7 +185,7 @@ void Win::Painter::drawText(
 		__text.c_str(),
 		static_cast<std::int32_t>(__text.size()),
 		&r,
-		__align.h | __align.v | (__singleLine ? DT_SINGLELINE : 0)
+		__align.horizontalAlign | __align.verticalAlign | (__singleLine ? DT_SINGLELINE : 0)
 			| DT_HIDEPREFIX | DT_NOPREFIX | DT_PATH_ELLIPSIS | DT_WORDBREAK | DT_MODIFYSTRING);
 }
 
@@ -206,7 +206,7 @@ void Win::Painter::drawText(
 		__text.c_str(),
 		static_cast<std::int32_t>(__text.size()),
 		&r,
-		__align.h | __align.v | (__singleLine ? DT_SINGLELINE : 0)
+		__align.horizontalAlign | __align.verticalAlign | (__singleLine ? DT_SINGLELINE : 0)
 			| DT_HIDEPREFIX | DT_NOPREFIX | DT_PATH_ELLIPSIS | DT_WORDBREAK | DT_MODIFYSTRING);
 }
 

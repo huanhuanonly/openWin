@@ -47,7 +47,7 @@ public:
     virtual const char* codeToText(std::uint32_t __code) const noexcept;
 
     /**
-    * @return false if an error is found.
+    * @returns false if an error is found.
     */
     bool check() noexcept;
 

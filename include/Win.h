@@ -228,10 +228,16 @@ public:
     using WString = std::wstring;
 
     using PgPoint = pg::PathGenerator<Point, int, 2>;
+	using PgPointDefault = pg::Direct<Point, int, 2>;
+
     using PgSize = pg::PathGenerator<Size, int, 2>;
+	using PgSizeDefault = pg::Direct<Size, int, 2>;
+
     using PgRect = pg::PathGenerator<Rect, int, 4>;
+	using PgRectDefault = pg::Direct<Rect, int, 4>;
 
     using PgInt = pg::PathGenerator<int, int, 1>;
+	using PgIntDefault = pg::Direct<int, int, 1>;
 
     // --- Get a window ---
     
@@ -467,11 +473,11 @@ public:
 
     void setPos(
         const Point& __point,
-        PgPoint* __pg = pg::Direct<Point, int, 2>::global()) const noexcept;
+        PgPoint* __pg = PgPointDefault::global()) const noexcept;
 
     inline void setPos(
         int __x, int __y,
-        PgPoint* __pg = pg::Direct<Point, int, 2>::global()) const noexcept
+        PgPoint* __pg = PgPointDefault::global()) const noexcept
     { setPos(Point(__x, __y), __pg); }
 
     enum PosFlag : int
@@ -486,38 +492,38 @@ public:
     void setPos(
         PosFlag __flag,
         int __reserve = 0,
-        PgPoint* __pg = pg::Direct<Point, int, 2>::global()) const noexcept;
+        PgPoint* __pg = PgPointDefault::global()) const noexcept;
 
     [[nodiscard]] Point pos() const noexcept;
 
     void move(
         int __addX, int __addY,
-        PgPoint* __pg = pg::Direct<Point, int, 2>::global()) const noexcept;
+        PgPoint* __pg = PgPointDefault::global()) const noexcept;
 
     inline void moveTo(
         const Point& __point,
-        PgPoint* __pg = pg::Direct<Point, int, 2>::global()) const noexcept
+        PgPoint* __pg = PgPointDefault::global()) const noexcept
     { setPos(__point, __pg); }
 
     inline void moveTo(
         int __x, int __y,
-        PgPoint* __pg = pg::Direct<Point, int, 2>::global()) const noexcept
+        PgPoint* __pg = PgPointDefault::global()) const noexcept
     { setPos(Point(__x, __y), __pg); }
 
     inline void moveTo(
         PosFlag __flag,
         int __reserve = 0,
-        PgPoint* __pg = pg::Direct<Point, int, 2>::global()) const noexcept
+        PgPoint* __pg = PgPointDefault::global()) const noexcept
     { setPos(__flag, __reserve, __pg); }
 
 
     void setSize(
         const Size& __size,
-        PgSize* __pg = pg::Direct<Size, int, 2>::global()) const noexcept;
+        PgSize* __pg = PgSizeDefault::global()) const noexcept;
 
     inline void setSize(
         int __x, int __y,
-        PgSize* __pg = pg::Direct<Size, int, 2>::global()) const noexcept
+        PgSize* __pg = PgSizeDefault::global()) const noexcept
     { setSize(Size(__x, __y), __pg); }
 
     [[nodiscard]] Size size() const noexcept;
@@ -526,11 +532,11 @@ public:
 
     void setWidth(
         int __width,
-        PgInt* __pg = pg::Direct<int, int, 1>::global()) const noexcept;
+        PgInt* __pg = PgIntDefault::global()) const noexcept;
 
     void setHeight(
         int __height,
-        PgInt* __pg = pg::Direct<int, int, 1>::global()) const noexcept;
+        PgInt* __pg = PgIntDefault::global()) const noexcept;
 
     [[nodiscard]] int width() const noexcept;
     [[nodiscard]] int height() const noexcept;
@@ -540,11 +546,11 @@ public:
 
     void setZoom(
         int __addWidth, int __addHeight,
-        PgSize* __pg = pg::Direct<Size, int, 2>::global()) const noexcept;
+        PgSize* __pg = PgSizeDefault::global()) const noexcept;
 
     void setZoom(
         double __scaleX, double __scaleY,
-        PgSize* __pg = pg::Direct<Size, int, 2>::global()) const noexcept;
+        PgSize* __pg = PgSizeDefault::global()) const noexcept;
 
     
     /**
@@ -553,36 +559,11 @@ public:
     */
     void setOpacity(
         int __value,
-        PgInt* __pg = pg::Direct<int, int, 1>::global()) const noexcept;
+        PgInt* __pg = PgIntDefault::global()) const noexcept;
 
     [[nodiscard]] int opacity() const noexcept;
 
-    class Color
-    {
-    public:
-
-        using Channel = std::uint8_t;
-
-        Color() = default;
-
-        Color(Channel __r, Channel __g, Channel __b) noexcept;
-
-        void setR(Channel __r) noexcept;
-        void setG(Channel __g) noexcept;
-        void setB(Channel __b) noexcept;
-
-        Channel r() const noexcept;
-        Channel g() const noexcept;
-        Channel b() const noexcept;
-
-        bool operator==(const Color& __other) const noexcept;
-
-        friend class Win;
-
-    protected:
-
-        std::uint32_t _M_data = 0;
-    };
+    class Color;
 
     void setTransparencyColor(const Color& __color) const noexcept;
     [[nodiscard]] Color transparencyColor() const noexcept;
@@ -635,7 +616,9 @@ public:
         MinimizeButton = 0x02,
         CloseButton    = 0x04,
 
-        HelpButton     = 0x08
+		HelpButton = 0x08  /// @warning The HelpButton cannot be
+                           ///          used with MaximizeButton
+                           ///          or MinimizeButton.
     };
 
     friend inline TitlebarButtons operator|(
@@ -726,9 +709,7 @@ public:
     };
 
 
-    /**
-    * https://learn.microsoft.com/en-us/windows/win32/inputdev/virtual-key-codes
-    */
+    /// @see also https://learn.microsoft.com/en-us/windows/win32/inputdev/virtual-key-codes
     enum Key : std::uint32_t
     {
         Key_BackSpace = 0x08,
@@ -895,6 +876,9 @@ public:
         WIN = 0x08
     };
 
+    /**
+	* Use `Ctrl + Alt + Key_A` or similar to create a Shortcut.
+    */
     struct Shortcut
     {
         Modifiers modifiers;
@@ -913,8 +897,18 @@ public:
         [[nodiscard]] int getId() const noexcept;
         [[nodiscard]] static Shortcut fromId(int __id) noexcept;
 
-        inline bool operator<(Shortcut __other) const noexcept
+        [[nodiscard]] bool operator==(Shortcut __other) const noexcept
+        { return getId() == __other.getId(); }
+        [[nodiscard]] bool operator!=(Shortcut __other) const noexcept
+        { return getId() != __other.getId(); }
+        [[nodiscard]] bool operator>(Shortcut __other) const noexcept
+        { return getId() > __other.getId(); }
+        [[nodiscard]] bool operator>=(Shortcut __other) const noexcept
+        { return getId() >= __other.getId(); }
+        [[nodiscard]] bool operator<(Shortcut __other) const noexcept
         { return getId() < __other.getId(); }
+        [[nodiscard]] bool operator<=(Shortcut __other) const noexcept
+        { return getId() <= __other.getId(); }
     };
 
 protected:
@@ -1075,27 +1069,27 @@ public:
     /**
     * @brief Send a WM_CLEAR message.
     */
-    void clear(Timeout __timeout = DefaultTimeout) const noexcept;
+    void sendClearMsg(Timeout __timeout = DefaultTimeout) const noexcept;
     
     /**
     * @brief Send a WM_COPY message.
     */
-    void copy(Timeout __timeout = DefaultTimeout) const noexcept;
+    void sendCopyMsg(Timeout __timeout = DefaultTimeout) const noexcept;
     
     /**
     * @brief Send a WM_CUT message.
     */
-    void cut(Timeout __timeout = DefaultTimeout) const noexcept;
+    void sendCutMsg(Timeout __timeout = DefaultTimeout) const noexcept;
     
     /**
     * @brief Send a WM_PASTE message.
     */
-    void paste(Timeout __timeout = DefaultTimeout) const noexcept;
+    void sendPasteMsg(Timeout __timeout = DefaultTimeout) const noexcept;
     
     /**
     * @brief Send a WM_UNDO message.
     */
-    void undo(Timeout __timeout = DefaultTimeout) const noexcept;
+    void sendUndoMsg(Timeout __timeout = DefaultTimeout) const noexcept;
 
 
     static void wait(Timeout __ms) noexcept;
@@ -1117,59 +1111,13 @@ public:
 
 protected:
 
-    struct BindShortcutToFunction_Data
-    {
-        std::map<
-            Shortcut,
-            std::pair<
-                ShortcutFunction,
-                ShortcutFunctionParam>> _map;
-
-        std::thread _thread;
-
-        mutable std::mutex _mutex;
-
-        std::forward_list<
-            std::tuple<
-                bool,
-                Shortcut,
-                ShortcutFunction,
-                ShortcutFunctionParam>> _toBeDone;
-
-        template<typename _Fn, typename... _Args>
-        explicit BindShortcutToFunction_Data(_Fn&& __fn, _Args&&... __args) noexcept
-            : _thread(std::forward<_Fn>(__fn), std::forward<_Args>(__args)...)
-        { }
-
-        ~BindShortcutToFunction_Data() noexcept;
-
-        void _M_applyRegister(
-            Shortcut __shortcut,
-            ShortcutFunction __function,
-            ShortcutFunctionParam __param) noexcept;
-
-        void _M_applyUnregister(
-            Shortcut __shortcut) noexcept;
-
-        void _M_register(
-            Shortcut __shortcut,
-            ShortcutFunction __function,
-            ShortcutFunctionParam __param) noexcept;
-
-        void _M_unregister(
-            Shortcut __shortcut) noexcept;
-
-        void _M_tryTodo() noexcept;
-
-        std::pair<ShortcutFunction, ShortcutFunctionParam>
-            _M_find(Shortcut __shortcut) const noexcept;
-    };
+    struct GlobalShortcutBindingData;
 
 private:
 
-    static void _S_bindShortcutToFunction_Proc() noexcept;
+    static void _S_globalShortcutBindingProc() noexcept;
 
-    static inline BindShortcutToFunction_Data* _S_bindShortcutToFunction_Data;
+    static inline GlobalShortcutBindingData* _S_globalShortcutBindingData;
 
 public:
 
@@ -1178,6 +1126,9 @@ public:
     *        thread to receive messages when it is called
     *        for the first time. When the shortcut key is
     *        pressed, the bound function is called.
+    * 
+	* @param __enable If false, unregister and unbind the
+    *                 global shortcut.
     */
     static void bindShortcutToFunction(
         Shortcut __shortcut,
@@ -1185,6 +1136,9 @@ public:
         ShortcutFunctionParam __param,
         bool __enable = true) noexcept;
 
+    /**
+    * @returns nullptr if the __shortcut is not bound.
+    */
     [[nodiscard]]
     static ShortcutFunction functionFromBoundShortcut(
         Shortcut __shortcut,
@@ -1209,27 +1163,37 @@ public:
 
     struct Alignment
     {
-        HorizontalAlignment h;
-        VerticalAlignment   v;
+        HorizontalAlignment horizontalAlign;
+        VerticalAlignment   verticalAlign;
 
-        Alignment(HorizontalAlignment __h, VerticalAlignment __v)
-            : h(__h), v(__v)
+		Alignment() noexcept
+			: horizontalAlign(LeftAlign), verticalAlign(TopAlign)
+		{ }
+
+        Alignment(HorizontalAlignment __h, VerticalAlignment __v) noexcept
+            : horizontalAlign(__h), verticalAlign(__v)
         { }
 
-        Alignment(VerticalAlignment __v, HorizontalAlignment __h)
-            : h(__h), v(__v)
+        Alignment(VerticalAlignment __v, HorizontalAlignment __h) noexcept
+            : horizontalAlign(__h), verticalAlign(__v)
         { }
 
-        friend inline Alignment operator+(HorizontalAlignment __h, VerticalAlignment __v)
+        friend inline Alignment operator+(HorizontalAlignment __h, VerticalAlignment __v) noexcept
         { return Alignment(__h, __v); }
 
-        friend inline Alignment operator+(VerticalAlignment __v, HorizontalAlignment __h)
+        friend inline Alignment operator+(VerticalAlignment __v, HorizontalAlignment __h) noexcept
         { return Alignment(__h, __v); }
 
-        friend inline Alignment operator|(HorizontalAlignment __h, VerticalAlignment __v)
+        friend inline Alignment operator|(HorizontalAlignment __h, VerticalAlignment __v) noexcept
         { return Alignment(__h, __v); }
 
-        friend inline Alignment operator|(VerticalAlignment __v, HorizontalAlignment __h)
+        friend inline Alignment operator|(VerticalAlignment __v, HorizontalAlignment __h) noexcept
+        { return Alignment(__h, __v); }
+
+        friend inline Alignment operator&(HorizontalAlignment __h, VerticalAlignment __v) noexcept
+        { return Alignment(__h, __v); }
+
+        friend inline Alignment operator&(VerticalAlignment __v, HorizontalAlignment __h) noexcept
         { return Alignment(__h, __v); }
     };
 
@@ -1240,282 +1204,13 @@ public:
         Point backwardControl;
     };
 
-    class Painter final
-    {
-    public:
-
-        using Handle = void*;
-
-        Painter() noexcept;
-
-        explicit Painter(const Win& __win) noexcept;
-        explicit Painter(Win::Handle __winHandle) noexcept;
-
-        Painter(std::nullptr_t) noexcept;
-
-        Painter(const Painter& __other) noexcept;
-        Painter(Painter&& __other) noexcept;
-
-        ~Painter() noexcept;
-
-        Painter& operator=(const Painter& __other) noexcept;
-        Painter& operator=(Painter&& __other) noexcept;
-
-        [[nodiscard]] Win window() const noexcept;
-
-        void setColorUnder(
-            const Point& __point,
-            const Color& __color) const noexcept;
-
-        [[nodiscard]] Color colorUnder(const Point& __point) const noexcept;
-
-        void setForegroundColor(const Color& __color) const noexcept;
-        void setBackgroundColor(const Color& __color) const noexcept;
-
-        void setBackgroundTransparent(bool __enable = true) const noexcept;
-
-        [[nodiscard]] Color foregroundColor() const noexcept;
-        [[nodiscard]] Color backgroundColor() const noexcept;
-
-        [[nodiscard]] bool backgroundTransparent() const noexcept;
-
-
-        /**
-        * +------------------------------+
-        * | Operand |       Meaning      |
-        * +---------+--------------------+
-        * | P       | Selected pen       |
-        * | D       | Destination bitmap |
-        * +---------+--------------------+
-        *
-        * +------------------------------+
-        * | Operator |       Meaning     |
-        * +----------+-------------------+
-        * | a        | Bitwise  (&)  AND |
-        * | n        | Bitwise  (~)  NOT |
-        * | o        | Bitwise  (|)   OR |
-        * | x        | Bitwise  (^)  XOR |
-        * +----------+-------------------+
-        *
-        * reverse Polish notation
-        */
-        enum class BlendingModes : std::uint32_t
-        {
-            ZERO = 1,  // 0
-            DPon,      // NOT(D OR P)
-            DPna,      // D AND NOT(P)
-            Pn,        // NOT(P)
-            PDna,      // P AND NOT(D)
-            Dn,        // NOT(D)
-            DPx,       // D XOR P
-            DPan,      // D AND NOT(P)
-            DPa,       // D AND P
-            DPxn,      // D XOR NOT(P)
-            D,         // D
-            DPno,      // D OR NOT(P)
-            P,         // P
-            PDno,      // D OR NOT(D)
-            DPo,       // D OR P
-            ONE        // 1
-        };
-
-        void setBlendingMode(BlendingModes __bm) const noexcept;
-        [[nodiscard]] BlendingModes blendingMode() const noexcept;
-
-        void drawText(
-            const String& __text,
-            const Point& __point) const noexcept;
-
-        void drawText(
-            const WString& __text,
-            const Point& __point) const noexcept;
-
-        void drawText(
-            const String& __text,
-            const Rect& __rect,
-            Alignment __align,
-            bool __singleLine = false) const noexcept;
-
-        void drawText(
-            const WString& __text,
-            const Rect& __rect,
-            Alignment __align,
-            bool __singleLine = false) const noexcept;
-
-    protected:
-
-        void _M_setCurrentPosition(const Point& __point) const noexcept;
-        [[nodiscard]] Point _M_currentPosition() const noexcept;
-
-        void _M_drawLineTo(const Point& __point) const noexcept;
-
-    public:
-
-        void drawLine(
-            const Point& __start,
-            const Point& __end) const noexcept;
-
-        void drawLines(const Point* __points, int __size) const noexcept;
-
-        template<int _Size>
-        inline void drawLines(const Point (&__points)[_Size]) const noexcept
-        { drawLines(__points, _Size); }
-
-        template<typename _Container>
-        void drawLines(
-            const std::enable_if_t<
-                std::is_same_v<
-                    std::remove_const_t<
-                        std::remove_reference_t<
-                            decltype(std::declval<_Container>().data())>>,
-                Point>, _Container>& __c) const noexcept
-        { drawLines(__c.data(), static_cast<int>(__c.size())); }
-
-        template<typename _Container>
-        void drawLines(
-            const std::enable_if_t<
-                std::is_same_v<
-                    void,
-                    std::void_t<
-                        decltype(std::declval<_Container>().begin()),
-                        decltype(std::declval<_Container>().end())>>,
-                _Container>& __c) const noexcept
-        { drawLines(__c.begin(), __c.end()); }
-
-        template<
-            typename _ForwardIterator,
-            typename = std::enable_if_t<
-                std::is_same_v<
-                    std::remove_const_t<
-                        std::remove_reference_t<
-                            decltype(*std::declval<_ForwardIterator>())>>,
-                    Point>>>
-        inline void drawLines(_ForwardIterator __first, _ForwardIterator __last) const noexcept
-        {
-            if (__first == __last)
-            {
-                return;
-            }
-
-            _M_setCurrentPosition(*__first);
-
-            for (++__first; __first != __last; ++__first)
-            {
-                _M_drawLineTo(*__first);
-            }
-        }
-
-        void drawPolygon(const Point* __vertexes, int __size) const noexcept;
-
-        void drawRect(const Rect& __rect) const noexcept;
-
-        void drawRect(const Rect& __rect, const Size& __round) const noexcept;
-
-        void drawCircle(
-            const Point& __center,
-            int __radius,
-            float __startAngle = 0,
-            float __sweepAngle = 360) const noexcept;
-
-        void drawEllipse(const Rect& __rect) const noexcept;
-
-        void drawArc(
-            const Rect& __rect,
-            const Point& __start,
-            const Point& __end) const noexcept;
-
-        void drawChord(
-            const Rect& __rect,
-            const Point& __start,
-            const Point& __end) const noexcept;
-
-        void drawPie(
-            const Rect& __rect,
-            const Point& __start,
-            const Point& __end) const noexcept;
-
-    protected:
-
-        void _M_drawPolyBezier(
-            const Point* __points,
-            int __size) const noexcept;
-
-    public:
-
-
-        /**
-        * @brief Draw a Cubic Bezier curve.
-        * 
-        * See also https://en.wikipedia.org/wiki/B%C3%A9zier_curve
-        * for more detail.
-        */
-        template<
-            typename _ForwardIterator,
-            typename = std::enable_if_t<
-                std::is_same_v<
-                    std::remove_const_t<
-                        std::remove_reference_t<
-                            decltype(*std::declval<_ForwardIterator>())>>,
-                    BezierVertex>>>
-        inline void drawPolyBezier(
-            _ForwardIterator __first,
-            _ForwardIterator __last,
-            std::size_t __size = 0) const noexcept
-        {
-            std::vector<Point> v;
-
-            if (__size > 0)
-            {
-                v.reserve(__size * 3);
-            }
-
-            if (__first == __last)
-            {
-                return;
-            }
-
-            v.push_back(__first->vertex);
-            v.push_back(__first->backwardControl);
-
-            for (++__first; __first != __last; ++__first)
-            {
-                v.push_back(__first->forwardControl);
-                v.push_back(__first->vertex);
-                v.push_back(__first->backwardControl);
-            }
-
-            v.pop_back();
-            _M_drawPolyBezier(v.data(), v.size());
-        }
-
-        template<
-            typename _Container,
-            typename = std::enable_if_t<
-                std::is_same_v<typename _Container::value_type, BezierVertex>,
-                std::void_t<
-                    decltype(std::declval<_Container>().begin()),
-                    decltype(std::declval<_Container>().end()),
-                    decltype(std::declval<_Container>().size())>>>
-        inline void drawPolyBezier(const _Container& __points) const noexcept
-        { drawPolyBezier(__points.begin(), __points.end(), __points.size()); }
-
-
-        void invert(const Rect& __rect) const noexcept;
-
-    private:
-
-        Handle _M_dc;
-        float _M_dpi;
-    };
+    class Painter;
 
     [[nodiscard]]
     std::unique_ptr<Painter> painter() const noexcept;
 
     [[nodiscard]]
     static Painter* screenPainter() noexcept;
-
-    [[nodiscard]]
-    Color colorUnder(const Point& __point) const noexcept;
 
     // --- Create a Window ---
 
@@ -1527,8 +1222,8 @@ public:
         IgnoreButton = 5,
         NoButton = 7,
         OkButton = 1,
-        Retry = 4,
-        Tryagain = 10,
+        RetryButton = 4,
+        TryAgainButton = 10,
         YesButton = 6
     };
 
@@ -1552,6 +1247,352 @@ private:
 
     Handle _M_handle;
     ErrorStream* _M_errorStream;
+};
+
+
+class Win::Color
+{
+public:
+
+    using Channel = std::uint8_t;
+
+    Color() = default;
+
+    Color(Channel __r, Channel __g, Channel __b) noexcept;
+
+    void setR(Channel __r) noexcept;
+    void setG(Channel __g) noexcept;
+    void setB(Channel __b) noexcept;
+
+    Channel r() const noexcept;
+    Channel g() const noexcept;
+    Channel b() const noexcept;
+
+    bool operator==(const Color& __other) const noexcept;
+
+    friend class Win;
+
+protected:
+
+    std::uint32_t _M_data = 0;
+};
+
+
+struct Win::GlobalShortcutBindingData
+{
+    std::map<
+        Shortcut,
+        std::pair<
+            ShortcutFunction,
+            ShortcutFunctionParam>> _M_shortcutBindings;
+
+    std::thread _M_thread;
+
+    mutable std::mutex _M_mutex;
+
+    std::forward_list<
+        std::tuple<
+            bool,
+            Shortcut,
+            ShortcutFunction,
+            ShortcutFunctionParam>> _M_taskQueue;
+
+    template<typename _Fn, typename... _Args>
+    explicit GlobalShortcutBindingData(_Fn&& __fn, _Args&&... __args) noexcept
+        : _M_thread(std::forward<_Fn>(__fn), std::forward<_Args>(__args)...)
+    { }
+
+    ~GlobalShortcutBindingData() noexcept;
+
+    void _M_applyRegister(
+        Shortcut __shortcut,
+        ShortcutFunction __function,
+        ShortcutFunctionParam __param) noexcept;
+
+    void _M_applyUnregister(
+        Shortcut __shortcut) noexcept;
+
+    void _M_register(
+        Shortcut __shortcut,
+        ShortcutFunction __function,
+        ShortcutFunctionParam __param) noexcept;
+
+    void _M_unregister(
+        Shortcut __shortcut) noexcept;
+
+    void _M_tryTodo() noexcept;
+
+    std::pair<ShortcutFunction, ShortcutFunctionParam>
+        _M_find(Shortcut __shortcut) const noexcept;
+};
+
+
+class Win::Painter
+{
+public:
+
+    using Handle = void*;
+
+    Painter() noexcept;
+
+    explicit Painter(const Win& __win) noexcept;
+    explicit Painter(Win::Handle __winHandle) noexcept;
+
+    Painter(std::nullptr_t) noexcept;
+
+    Painter(const Painter& __other) noexcept;
+    Painter(Painter&& __other) noexcept;
+
+    ~Painter() noexcept;
+
+    Painter& operator=(const Painter& __other) noexcept;
+    Painter& operator=(Painter&& __other) noexcept;
+
+    [[nodiscard]] Win window() const noexcept;
+
+    void setColorUnder(
+        const Point& __point,
+        const Color& __color) const noexcept;
+
+    [[nodiscard]] Color colorUnder(const Point& __point) const noexcept;
+
+    void setForegroundColor(const Color& __color) const noexcept;
+    void setBackgroundColor(const Color& __color) const noexcept;
+
+    void setBackgroundTransparent(bool __enable = true) const noexcept;
+
+    [[nodiscard]] Color foregroundColor() const noexcept;
+    [[nodiscard]] Color backgroundColor() const noexcept;
+
+    [[nodiscard]] bool backgroundTransparent() const noexcept;
+
+
+    /**
+    * +------------------------------+
+    * | Operand |       Meaning      |
+    * +---------+--------------------+
+    * | P       | Selected pen       |
+    * | D       | Destination bitmap |
+    * +---------+--------------------+
+    *
+    * +------------------------------+
+    * | Operator |       Meaning     |
+    * +----------+-------------------+
+    * | a        | Bitwise  (&)  AND |
+    * | n        | Bitwise  (~)  NOT |
+    * | o        | Bitwise  (|)   OR |
+    * | x        | Bitwise  (^)  XOR |
+    * +----------+-------------------+
+    *
+    * reverse Polish notation
+    */
+    enum class BlendingModes : std::uint32_t
+    {
+        ZERO = 1,  // 0
+        DPon,      // NOT(D OR P)
+        DPna,      // D AND NOT(P)
+        Pn,        // NOT(P)
+        PDna,      // P AND NOT(D)
+        Dn,        // NOT(D)
+        DPx,       // D XOR P
+        DPan,      // D AND NOT(P)
+        DPa,       // D AND P
+        DPxn,      // D XOR NOT(P)
+        D,         // D
+        DPno,      // D OR NOT(P)
+        P,         // P
+        PDno,      // D OR NOT(D)
+        DPo,       // D OR P
+        ONE        // 1
+    };
+
+    void setBlendingMode(BlendingModes __bm) const noexcept;
+    [[nodiscard]] BlendingModes blendingMode() const noexcept;
+
+    void drawText(
+        const String& __text,
+        const Point& __point) const noexcept;
+
+    void drawText(
+        const WString& __text,
+        const Point& __point) const noexcept;
+
+    void drawText(
+        const String& __text,
+        const Rect& __rect,
+        Alignment __align = Alignment(),
+        bool __singleLine = false) const noexcept;
+
+    void drawText(
+        const WString& __text,
+        const Rect& __rect,
+        Alignment __align = Alignment(),
+        bool __singleLine = false) const noexcept;
+
+protected:
+
+    void _M_setCurrentPosition(const Point& __point) const noexcept;
+    [[nodiscard]] Point _M_currentPosition() const noexcept;
+
+    void _M_drawLineTo(const Point& __point) const noexcept;
+
+public:
+
+    void drawLine(
+        const Point& __start,
+        const Point& __end) const noexcept;
+
+    void drawLines(const Point* __points, int __size) const noexcept;
+
+    template<int _Size>
+    inline void drawLines(const Point (&__points)[_Size]) const noexcept
+    { drawLines(__points, _Size); }
+
+    template<typename _Container>
+    void drawLines(
+        const std::enable_if_t<
+            std::is_same_v<
+                std::remove_const_t<
+                    std::remove_reference_t<
+                        decltype(std::declval<_Container>().data())>>,
+            Point>, _Container>& __c) const noexcept
+    { drawLines(__c.data(), static_cast<int>(__c.size())); }
+
+    template<typename _Container>
+    void drawLines(
+        const std::enable_if_t<
+            std::is_same_v<
+                void,
+                std::void_t<
+                    decltype(std::declval<_Container>().begin()),
+                    decltype(std::declval<_Container>().end())>>,
+            _Container>& __c) const noexcept
+    { drawLines(__c.begin(), __c.end()); }
+
+    template<
+        typename _ForwardIterator,
+        typename = std::enable_if_t<
+            std::is_same_v<
+                std::remove_const_t<
+                    std::remove_reference_t<
+                        decltype(*std::declval<_ForwardIterator>())>>,
+                Point>>>
+    inline void drawLines(_ForwardIterator __first, _ForwardIterator __last) const noexcept
+    {
+        if (__first == __last)
+        {
+            return;
+        }
+
+        _M_setCurrentPosition(*__first);
+
+        for (++__first; __first != __last; ++__first)
+        {
+            _M_drawLineTo(*__first);
+        }
+    }
+
+    void drawPolygon(const Point* __vertexes, int __size) const noexcept;
+
+    void drawRect(const Rect& __rect) const noexcept;
+
+    void drawRect(const Rect& __rect, const Size& __round) const noexcept;
+
+    void drawCircle(
+        const Point& __center,
+        int __radius,
+        float __startAngle = 0,
+        float __sweepAngle = 360) const noexcept;
+
+    void drawEllipse(const Rect& __rect) const noexcept;
+
+    void drawArc(
+        const Rect& __rect,
+        const Point& __start,
+        const Point& __end) const noexcept;
+
+    void drawChord(
+        const Rect& __rect,
+        const Point& __start,
+        const Point& __end) const noexcept;
+
+    void drawPie(
+        const Rect& __rect,
+        const Point& __start,
+        const Point& __end) const noexcept;
+
+protected:
+
+    void _M_drawPolyBezier(
+        const Point* __points,
+        int __size) const noexcept;
+
+public:
+
+
+    /**
+    * @brief Draw a cubic Bezier-curve.
+    * 
+    * See also https://en.wikipedia.org/wiki/B%C3%A9zier_curve
+    * for more detail.
+    */
+    template<
+        typename _ForwardIterator,
+        typename = std::enable_if_t<
+            std::is_same_v<
+                std::remove_const_t<
+                    std::remove_reference_t<
+                        decltype(*std::declval<_ForwardIterator>())>>,
+                BezierVertex>>>
+    inline void drawPolyBezier(
+        _ForwardIterator __first,
+        _ForwardIterator __last,
+        std::size_t __size = 0) const noexcept
+    {
+        std::vector<Point> v;
+
+        if (__size > 0)
+        {
+            v.reserve(__size * 3);
+        }
+
+        if (__first == __last)
+        {
+            return;
+        }
+
+        v.push_back(__first->vertex);
+        v.push_back(__first->backwardControl);
+
+        for (++__first; __first != __last; ++__first)
+        {
+            v.push_back(__first->forwardControl);
+            v.push_back(__first->vertex);
+            v.push_back(__first->backwardControl);
+        }
+
+        v.pop_back();
+        _M_drawPolyBezier(v.data(), v.size());
+    }
+
+    template<
+        typename _Container,
+        typename = std::enable_if_t<
+            std::is_same_v<typename _Container::value_type, BezierVertex>,
+            std::void_t<
+                decltype(std::declval<_Container>().begin()),
+                decltype(std::declval<_Container>().end()),
+                decltype(std::declval<_Container>().size())>>>
+    inline void drawPolyBezier(const _Container& __points) const noexcept
+    { drawPolyBezier(__points.begin(), __points.end(), __points.size()); }
+
+
+    void invert(const Rect& __rect) const noexcept;
+
+private:
+
+    Handle _M_dc;
+    float _M_dpi;
 };
 
 #endif  // WIN_H

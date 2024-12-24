@@ -200,82 +200,82 @@ Win::Shortcut Win::Shortcut::fromId(int __id) noexcept
 		static_cast<Win::Key>((__id >> 4) & 0xFF));
 }
 
-Win::BindShortcutToFunction_Data::~BindShortcutToFunction_Data() noexcept
+Win::GlobalShortcutBindingData::~GlobalShortcutBindingData() noexcept
 {
-	for (auto it = _map.begin(); it != _map.end(); ++it)
+	for (auto it = _M_shortcutBindings.begin(); it != _M_shortcutBindings.end(); ++it)
 	{
 		_M_unregister(it->first);
 	}
 }
 
-void Win::BindShortcutToFunction_Data::_M_applyRegister(
+void Win::GlobalShortcutBindingData::_M_applyRegister(
 	Win::Shortcut __shortcut,
 	Win::ShortcutFunction __function,
 	Win::ShortcutFunctionParam __param) noexcept
 {
-	_mutex.lock();
-	_toBeDone.push_front(std::make_tuple(true, __shortcut, __function, __param));
-	_mutex.unlock();
+	_M_mutex.lock();
+	_M_taskQueue.push_front(std::make_tuple(true, __shortcut, __function, __param));
+	_M_mutex.unlock();
 }
 
-void Win::BindShortcutToFunction_Data::_M_applyUnregister(
+void Win::GlobalShortcutBindingData::_M_applyUnregister(
 	Win::Shortcut __shortcut) noexcept
 {
-	_mutex.lock();
-	_toBeDone.push_front(std::make_tuple(false, __shortcut, nullptr, nullptr));
-	_mutex.unlock();
+	_M_mutex.lock();
+	_M_taskQueue.push_front(std::make_tuple(false, __shortcut, nullptr, nullptr));
+	_M_mutex.unlock();
 }
 
-void Win::BindShortcutToFunction_Data::_M_register(
+void Win::GlobalShortcutBindingData::_M_register(
 	Win::Shortcut __shortcut,
 	Win::ShortcutFunction __function,
 	Win::ShortcutFunctionParam __param) noexcept
 {
 	if (RegisterHotKey(nullptr, __shortcut.getId(), __shortcut.modifiers, __shortcut.key))
 	{
-		_map[__shortcut] = std::make_pair(__function, __param);
+		_M_shortcutBindings[__shortcut] = std::make_pair(__function, __param);
 	}
 }
 
-void Win::BindShortcutToFunction_Data::_M_unregister(
+void Win::GlobalShortcutBindingData::_M_unregister(
 	Win::Shortcut __shortcut) noexcept
 {
 	if (UnregisterHotKey(nullptr, __shortcut.getId()))
 	{
-		if (auto it = _map.find(__shortcut); it != _map.end())
+		if (auto it = _M_shortcutBindings.find(__shortcut); it != _M_shortcutBindings.end())
 		{
-			_map.erase(it);
+			_M_shortcutBindings.erase(it);
 		}
 	}
 }
 
-void Win::BindShortcutToFunction_Data::_M_tryTodo() noexcept
+void Win::GlobalShortcutBindingData::_M_tryTodo() noexcept
 {
-	_mutex.lock();
+	_M_mutex.lock();
 
-	while (_toBeDone.empty())
+	while (_M_taskQueue.empty())
 	{
-		auto& [flag, sc, sf, sfp] = _toBeDone.front();
+		auto& [flag, sc, sf, sfp] = _M_taskQueue.front();
 
 		if (flag)
 			_M_register(sc, sf, sfp);
 		else
 			_M_unregister(sc);
 
-		_toBeDone.pop_front();
+		_M_taskQueue.pop_front();
 	}
 
-	_mutex.unlock();
+	_M_mutex.unlock();
 }
 
 std::pair<Win::ShortcutFunction, Win::ShortcutFunctionParam>
-	Win::BindShortcutToFunction_Data::_M_find(Win::Shortcut __shortcut) const noexcept
+	Win::GlobalShortcutBindingData::_M_find(Win::Shortcut __shortcut) const noexcept
 {
-	std::lock_guard<std::mutex> lg(_mutex);
+	std::lock_guard<std::mutex> lg(_M_mutex);
 
-	auto fit = _map.find(__shortcut);
+	auto fit = _M_shortcutBindings.find(__shortcut);
 
-	if (fit == _map.end())
+	if (fit == _M_shortcutBindings.end())
 	{
 		return { nullptr, nullptr };
 	}
