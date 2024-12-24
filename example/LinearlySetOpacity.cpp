@@ -16,7 +16,7 @@ int main()
     {
         if (cur != last)
         {
-            cur.setOpacity(155, &linear);
+            cur.setOpacity(255, &linear);
             
             last = cur;
         }

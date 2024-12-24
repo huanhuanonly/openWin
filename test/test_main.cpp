@@ -3,7 +3,7 @@
 
 #include "../include/Win.h"
 #include "../include/Cur.h"
-#include "../include/pg_Linear.h"
+#include "../include/pg/Linear.h"
 
 extern int test_move();
 extern int test_move2();

@@ -30,8 +30,8 @@
 
 #include "ErrorStream.h"
 
-#include "PathGenerator.h"
-#include "pg_Direct.h"
+#include "pg/PathGenerator.h"
+#include "pg/Direct.h"
 
 /**
 * @brief Use the WIN_FW macro to map a function name
@@ -227,11 +227,11 @@ public:
     using String = std::string;
     using WString = std::wstring;
 
-    using PgPoint = PathGenerator<Point, int, 2>;
-    using PgSize = PathGenerator<Size, int, 2>;
-    using PgRect = PathGenerator<Rect, int, 4>;
+    using PgPoint = pg::PathGenerator<Point, int, 2>;
+    using PgSize = pg::PathGenerator<Size, int, 2>;
+    using PgRect = pg::PathGenerator<Rect, int, 4>;
 
-    using PgInt = PathGenerator<int, int, 1>;
+    using PgInt = pg::PathGenerator<int, int, 1>;
 
     // --- Get a window ---
     

@@ -1,5 +1,5 @@
 /**
-* pg_Linear.h In the openWin (https://github.com/huanhuanonly/openWin)
+* Direct.h In the openWin (https://github.com/huanhuanonly/openWin)
 *
 * Created by Yang Huanhuan on December 3, 2024, 11:18:27
 *
@@ -7,7 +7,7 @@
 *
 * --- This file is a part of openWin ---
 *
-* @package pg, Encapsulates the class inherited from
+* @package pg: Encapsulates the class inherited from
 *              PathGenerator.
 *
 * @brief Encapsulates a path generator that contains
