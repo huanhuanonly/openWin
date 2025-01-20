@@ -1,0 +1,4 @@
+*.md   linguist-detectable
+*.json linguist-detectable
+
+include/openWin/openWin linguist-language=C++

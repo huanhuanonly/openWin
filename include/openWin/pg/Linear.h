@@ -1,29 +1,32 @@
 /**
+* Copyright (c) 2024-2025 Yang Huanhuan (3347484963@qq.com).
+* 
+* This software is provided "as is", without warranty of any kind, express or implied.
+*/
+
+/**
 * Linear.h In the openWin (https://github.com/huanhuanonly/openWin)
-*
+* 
 * Created by Yang Huanhuan on December 3, 2024, 16:20:36
-*
-* Email -> 3347484963@qq.com
-*
+* 
 * --- This file is a part of openWin ---
-*
-* @package pg: Encapsulates the class inherited from
-*              PathGenerator.
+* 
+* @package pg: Encapsulates the class inherited from PathGenerator.
 * 
 * @brief Encapsulates a linear movement path generator.
 */
 
 #pragma once
 
-#ifndef PG_LINEAR_H
-#define PG_LINEAR_H
+#ifndef OPENWIN_HEADER_PG_LINEAR_H
+#define OPENWIN_HEADER_PG_LINEAR_H
 
 #include "PathGenerator.h"
 
 #include <array>
 #include <algorithm>
 
-namespace pg
+namespace win::pg
 {
 
 template<typename _Combination, typename _ElementType, std::size_t _Dimension>
@@ -129,6 +132,6 @@ private:
     real _M_block;
 };
 
-}  // namespace pg
+}  // namespace win::pg
 
-#endif  // PG_LINEAR_H
+#endif  // OPENWIN_HEADER_PG_LINEAR_H

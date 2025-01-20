@@ -1,22 +1,28 @@
 /**
+* Copyright (c) 2024-2025 Yang Huanhuan (3347484963@qq.com).
+* 
+* This software is provided "as is", without warranty of any kind, express or implied.
+*/
+
+/**
 * Cur.h In the openWin (https://github.com/huanhuanonly/openWin)
-*
+* 
 * Created by Yang Huanhuan on December 6, 2024, 16:44:55
-*
-* Email -> 3347484963@qq.com
 * 
 * --- This file is a part of openWin ---
-*
-* @brief Encapsulates a cursor class (Cur) to obtain cursor
-*        information or control the cursor.
+* 
+* @brief Encapsulates a cursor class (Cur) to obtain cursor information or control the cursor.
 */
 
 #pragma once
 
-#ifndef CUR_H
-#define CUR_H
+#ifndef OPENWIN_HEADER_CUR_H
+#define OPENWIN_HEADER_CUR_H
 
 #include "Win.h"
+
+namespace win
+{
 
 class Cur
 {
@@ -28,7 +34,7 @@ public:
     static float dpi() noexcept;
 
     [[nodiscard]]
-    static Win::Point pos() noexcept;
+    static Point pos() noexcept;
 
     [[nodiscard]]
     static int x() noexcept;
@@ -41,4 +47,6 @@ private:
     static inline float _S_dpi = Win::fromDesktop().dpi();
 };
 
-#endif // CUR_H
+}  // namespace win
+
+#endif // OPENWIN_HEADER_CUR_H

@@ -1,24 +1,29 @@
 /**
+* Copyright (c) 2024-2025 Yang Huanhuan (3347484963@qq.com).
+* 
+* This software is provided "as is", without warranty of any kind, express or implied.
+*/
+
+/**
 * openWin.h In the openWin (https://github.com/huanhuanonly/openWin)
-*
+* 
 * Created by Yang Huanhuan on December 24, 2024, 16:39:50
-*
-* Email -> 3347484963@qq.com
-*
+* 
 * --- This file is a part of openWin ---
-*
+* 
 * @brief All headers in the openWin.
 */
 
 #pragma once
 
-#ifndef OPEN_WIN_H
-#define OPEN_WIN_H
+#ifndef OPENWIN_H
+#define OPENWIN_H
 
-#include "Win.h"
-#include "Cur.h"
+#include "openWin/Win.h"
+#include "openWin/Cur.h"
+#include "openWin/Painter.h"
 
-#include "pg/Direct.h"
-#include "pg/Linear.h"
+#include "openWin/pg/Direct.h"
+#include "openWin/pg/Linear.h"
 
-#endif  // OPEN_WIN_H
+#endif  // OPENWIN_H

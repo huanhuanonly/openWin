@@ -1,60 +1,28 @@
 /**
+* Copyright (c) 2024-2025 Yang Huanhuan (3347484963@qq.com).
+* 
+* This software is provided "as is", without warranty of any kind, express or implied.
+*/
+
+/**
 * Win.cpp In the openWin (https://github.com/huanhuanonly/openWin)
-*
+* 
 * Created by Yang Huanhuan on November 25, 2024, 11:15:05
-*
-* Email -> 3347484963@qq.com
-*
+* 
 * --- This file is a part of openWin ---
-*
+* 
 * @brief Implement Win.h
 */
 
-#include "../include/Win.h"
+#include <openWin/Win.h>
+#include <openWin/Painter.h>
 
-#include <Windows.h>
-#include <Psapi.h>
+#include "Built-in/_Windows.h"
+#include "Built-in/_MacrosForErrorHandling.h"
 
-#undef min
-#undef max
+using namespace win;
 
-#define _Win_Begin_ \
-    ::ErrorStream* const _L_currentErrorStream = this->_M_errorStream; \
-    ::ErrorStreamGuard _L_errorStreamGuard(*_L_currentErrorStream, __func__);
-
-#define _Win_Static_Begin_ \
-    ::ErrorStream* const _L_currentErrorStream = ::ErrorStream::global(); \
-    ::ErrorStreamGuard _L_errorStreamGuard(*ErrorStream::global(), __func__);
-
-#define _Win_Check_ \
-    do { if (_L_currentErrorStream->check() == false) { return; } } while (false);
-
-#define _Win_Check_with_(...) \
-    do { if (_L_currentErrorStream->check() == false) { return __VA_ARGS__; } } while (false);
-
-#define _Win_Check_Noreturn_ \
-    _L_currentErrorStream->check();
-
-#define _Win_Failed_ \
-    do { _L_currentErrorStream->setFail(); return; } while (false);
-
-#define _Win_Failed_with_(...) \
-    do { _L_currentErrorStream->setFail(); return __VA_ARGS__; } while (false);
-
-#define _Win_Failed_Noreturn_ \
-    _L_currentErrorStream->setFail();
-
-#define _Win_Test_(ret, ...) \
-    do { if ((ret) == 0) { _Win_Failed_with_(__VA_ARGS__); } } while (false);
-
-#define _Win_Return_on_failed_ \
-    do { if (_L_currentErrorStream->failed()) { return; } } while (false);
-
-#define _Win_Return_on_failed_with_(...) \
-    do { if (_L_currentErrorStream->failed()) { return __VA_ARGS__; } } while (false);
-
-
-inline HWND $(Win::Handle __handle) noexcept
+static inline HWND $(Win::Handle __handle) noexcept
 { return reinterpret_cast<HWND>(__handle); }
 
 
@@ -116,7 +84,7 @@ Win::Handle Win::handle() const noexcept
     return _M_handle;
 }
 
-void Win::setErrorStream(ErrorStream& __es)
+void Win::setErrorStream(const ErrorStream& __es)
 {
     *_M_errorStream = __es;
 }
@@ -141,7 +109,7 @@ bool Win::failed() const noexcept
     return _M_errorStream->failed();
 }
 
-Win Win::fromPoint(const Win::Point& __point) noexcept
+Win Win::fromPoint(const Point& __point) noexcept
 {
     _Win_Static_Begin_
 
@@ -427,17 +395,17 @@ bool Win::hasParent() const noexcept
     return static_cast<bool>(GetAncestor($(_M_handle), GA_PARENT));
 }
 
-Win::WinList Win::children() const noexcept
+WinList Win::children() const noexcept
 {
     _Win_Begin_
-    Win::WinList buffers;
+    WinList buffers;
 
     EnumChildWindows(
         $(_M_handle),
         static_cast<WNDENUMPROC>(
             [](HWND hWnd, LPARAM lParam) -> BOOL
             {
-                reinterpret_cast<Win::WinList*>(lParam)->push_back(Win(hWnd));
+                reinterpret_cast<WinList*>(lParam)->push_back(Win(hWnd));
                 return true;
             }),
         reinterpret_cast<LPARAM>(&buffers));
@@ -498,7 +466,7 @@ int Win::setTile(Win::Orientation __orientation) const noexcept
             nullptr));
 }
 
-int Win::setTile(Win::Orientation __orientation, const Win::Rect& __clientRect) const noexcept
+int Win::setTile(Win::Orientation __orientation, const Rect& __clientRect) const noexcept
 {
     _Win_Begin_
     RECT r;
@@ -517,16 +485,16 @@ int Win::setTile(Win::Orientation __orientation, const Win::Rect& __clientRect) 
             nullptr));
 }
 
-Win::WinList Win::list() noexcept
+WinList Win::list() noexcept
 {
     _Win_Static_Begin_
-    Win::WinList buffers;
+    WinList buffers;
 
     EnumWindows(
         static_cast<WNDENUMPROC>(
             [](HWND hWnd, LPARAM lParam) -> BOOL
             {
-                reinterpret_cast<Win::WinList*>(lParam)->push_back(Win(hWnd));
+                reinterpret_cast<WinList*>(lParam)->push_back(Win(hWnd));
                 return true;
             }),
         reinterpret_cast<LPARAM>(&buffers));
@@ -534,17 +502,17 @@ Win::WinList Win::list() noexcept
     return buffers;
 }
 
-Win::WinList Win::listInSameThread() const noexcept
+WinList Win::listInSameThread() const noexcept
 {
     _Win_Begin_
-    Win::WinList buffers;
+    WinList buffers;
 
     EnumThreadWindows(
         threadId(),
         static_cast<WNDENUMPROC>(
             [](HWND hWnd, LPARAM lParam) -> BOOL
             {
-                reinterpret_cast<Win::WinList*>(lParam)->push_back(Win(hWnd));
+                reinterpret_cast<WinList*>(lParam)->push_back(Win(hWnd));
                 return true;
             }),
         reinterpret_cast<LPARAM>(&buffers));
@@ -830,7 +798,7 @@ void Win::setRect(const Rect& __rect) const noexcept
 {
     _Win_Begin_
 
-    Win::Size sz(__rect.size().physics(dpi()));
+    Size sz(__rect.size().physics(dpi()));
 
     SetWindowPos(
         $(_M_handle),
@@ -842,7 +810,7 @@ void Win::setRect(const Rect& __rect) const noexcept
         SWP_NOZORDER);
 }
 
-Win::Rect Win::rect() const noexcept
+Rect Win::rect() const noexcept
 {
     _Win_Begin_
 
@@ -850,14 +818,14 @@ Win::Rect Win::rect() const noexcept
     
     GetWindowRect($(_M_handle), &buffer);
 
-    return Win::Rect(
+    return Rect(
         buffer.left,
         buffer.top,
         buffer.right - buffer.left,
         buffer.bottom - buffer.top).mapto(dpi());
 }
 
-Win::Rect Win::clientRect() const noexcept
+Rect Win::clientRect() const noexcept
 {
     _Win_Begin_
 
@@ -865,7 +833,7 @@ Win::Rect Win::clientRect() const noexcept
 
     GetClientRect($(_M_handle), &buffer);
 
-    return Win::Rect(
+    return Rect(
         buffer.left,
         buffer.top,
         buffer.right - buffer.left,
@@ -882,7 +850,7 @@ void Win::setPos(const Point& __point, Win::PgPoint* __pg) const noexcept
 
     for (__pg->next(); !__pg->atEnd(); __pg->next())
     {
-        Win::Point cur(__pg->get().physics(_dpi));
+        Point cur(__pg->get().physics(_dpi));
 
         bool ret = SetWindowPos(
             $(_M_handle),
@@ -923,14 +891,14 @@ void Win::setPos(Win::PosFlag __flag, int __reserve, Win::PgPoint* __pg) const n
     }
 }
 
-Win::Point Win::pos() const noexcept
+Point Win::pos() const noexcept
 {
     return rect().point();
 }
 
 void Win::move(int __addX, int __addY, Win::PgPoint* __pg) const noexcept
 {
-    Win::Point p(pos());
+    Point p(pos());
 
     setPos(p.x() + __addX, p.y() + __addY, __pg);
 }
@@ -945,7 +913,7 @@ void Win::setSize(const Size& __size, Win::PgSize* __pg) const noexcept
 
     for (__pg->next(); !__pg->atEnd(); __pg->next())
     {
-        Win::Size cur(__pg->get().physics(_dpi));
+        Size cur(__pg->get().physics(_dpi));
 
         bool ret = SetWindowPos(
             $(_M_handle),
@@ -960,32 +928,32 @@ void Win::setSize(const Size& __size, Win::PgSize* __pg) const noexcept
     }
 }
 
-Win::Size Win::size() const noexcept
+Size Win::size() const noexcept
 {
     return rect().size();
 }
 
-Win::Size Win::screenSize() noexcept
+Size Win::screenSize() noexcept
 {
     _Win_Static_Begin_
 
     HDC hDc = GetDC(nullptr);
 
-    _Win_Test_(hDc, Win::Size())
+    _Win_Test_(hDc, Size())
 
     int w = GetDeviceCaps(hDc, DESKTOPHORZRES);
     int h = GetDeviceCaps(hDc, DESKTOPVERTRES);
 
     ReleaseDC(nullptr, hDc);
 
-    return Win::Size(w, h);
+    return Size(w, h);
 }
 
 void Win::setWidth(int __width, Win::PgInt* __pg) const noexcept
 {
     _Win_Begin_
 
-    Win::Size sz(size());
+    Size sz(size());
 
     __pg->build(sz.width(), __width);
 
@@ -1010,7 +978,7 @@ void Win::setHeight(int __height, Win::PgInt* __pg) const noexcept
 {
     _Win_Begin_
 
-    Win::Size sz(size());
+    Size sz(size());
 
     __pg->build(sz.height(), __height);
 
@@ -1073,14 +1041,14 @@ int Win::screenHeight() noexcept
 
 void Win::setZoom(int __addWidth, int __addHeight, Win::PgSize* __pg) const noexcept
 {
-    Win::Size sz(size());
+    Size sz(size());
 
     setSize(sz.w() + __addWidth, sz.h() + __addHeight, __pg);
 }
 
 void Win::setZoom(double __scaleX, double __scaleY, Win::PgSize* __pg) const noexcept
 {
-    Win::Size sz(size());
+    Size sz(size());
 
     setSize(
         static_cast<int>(static_cast<double>(sz.w()) * __scaleX),
@@ -1130,11 +1098,11 @@ int Win::opacity() const noexcept
     return buffer;
 }
 
-void Win::setTransparencyColor(const Win::Color& __color) const noexcept
+void Win::setTransparencyColor(const Color& __color) const noexcept
 {
     _Win_Begin_
 
-    static_assert(sizeof(Win::Color) == sizeof(COLORREF), "sizeof(Win::Color) != sizeof(COLORREF)");
+    static_assert(sizeof(Color) == sizeof(COLORREF), "sizeof(Color) != sizeof(COLORREF)");
 
     auto style = GetWindowLong($(_M_handle), GWL_EXSTYLE);
     _Win_Check_
@@ -1152,13 +1120,13 @@ void Win::setTransparencyColor(const Win::Color& __color) const noexcept
         LWA_COLORKEY);
 }
 
-Win::Color Win::transparencyColor() const noexcept
+Color Win::transparencyColor() const noexcept
 {
     _Win_Begin_
 
-    static_assert(sizeof(Win::Color) == sizeof(COLORREF), "sizeof(Win::Color) != sizeof(COLORREF)");
+    static_assert(sizeof(Color) == sizeof(COLORREF), "sizeof(Color) != sizeof(COLORREF)");
 
-    Win::Color buffer{};
+    Color buffer{};
 
     auto style = GetWindowLong($(_M_handle), GWL_EXSTYLE);
     _Win_Check_with_(buffer)
@@ -1568,7 +1536,7 @@ void Win::update(bool __eraseBackground) const noexcept
     _Win_Test_(ret)
 }
 
-void Win::update(bool __eraseBackground, const Win::Rect& __clientRect) const noexcept
+void Win::update(bool __eraseBackground, const Rect& __clientRect) const noexcept
 {
     _Win_Begin_
 
@@ -1795,7 +1763,7 @@ void Win::send(
                 break;
 
             case '\n':
-                send(Win::Key_Return, __timeout);
+                send(Key_Return, __timeout);
                 break;
 
             default:
@@ -1827,7 +1795,7 @@ void Win::post(const Win::String& __text, bool __linebreakKey) const noexcept
                 break;
 
             case '\n':
-                post(Win::Key_Return);
+                post(Key_Return);
                 break;
 
             default:
@@ -1862,7 +1830,7 @@ void Win::send(
                 break;
 
             case '\n':
-                send(Win::Key_Return, __timeout);
+                send(Key_Return, __timeout);
                 break;
 
             default:
@@ -1894,7 +1862,7 @@ void Win::post(const Win::WString& __text, bool __linebreakKey) const noexcept
                 break;
 
             case '\n':
-                post(Win::Key_Return);
+                post(Key_Return);
                 break;
 
             default:
@@ -1949,19 +1917,19 @@ void Win::post(wchar_t __word) const noexcept
     PostMessageW($(_M_handle), WM_CHAR, __word, lParam._uint_v);
 }
 
-void Win::send(Win::Key __key, Win::Timeout __timeout) const noexcept
+void Win::send(Key __key, Win::Timeout __timeout) const noexcept
 {
     send(__key, OnlyPress, __timeout);
     send(__key, OnlyRelease, __timeout);
 }
 
-void Win::post(Win::Key __key) const noexcept
+void Win::post(Key __key) const noexcept
 {
     post(__key, OnlyPress);
     post(__key, OnlyRelease);
 }
 
-void Win::send(Win::Key __key, Win::KeyAction __action, Win::Timeout __timeout) const noexcept
+void Win::send(Key __key, Win::KeyAction __action, Win::Timeout __timeout) const noexcept
 {
     WM_CHAR_LPARAM lParam;
 
@@ -1990,7 +1958,7 @@ void Win::send(Win::Key __key, Win::KeyAction __action, Win::Timeout __timeout) 
     }
 }
 
-void Win::post(Win::Key __key, Win::KeyAction __action) const noexcept
+void Win::post(Key __key, Win::KeyAction __action) const noexcept
 {
     WM_CHAR_LPARAM lParam;
 
@@ -2096,12 +2064,7 @@ void Win::sendUndoMsg(Win::Timeout __timeout) const noexcept
     _M_sendMessageW(WM_UNDO, 0, 0, __timeout);
 }
 
-void Win::wait(Win::Timeout __ms) noexcept
-{
-    Sleep(__ms);
-}
-
-void Win::setShortcut(Win::Shortcut __shortcut, bool __enable) const noexcept
+void Win::setShortcut(Shortcut __shortcut, bool __enable) const noexcept
 {
     _Win_Begin_
 
@@ -2119,95 +2082,14 @@ void Win::setShortcut(Win::Shortcut __shortcut, bool __enable) const noexcept
     }
 }
 
-void Win::_S_globalShortcutBindingProc() noexcept
+std::unique_ptr<Painter> Win::painter() const noexcept
 {
-    _Win_Static_Begin_
-
-    MSG msg;
-
-    auto timerId = SetTimer(nullptr, 1, 200, nullptr);
-
-    int ret;
-
-    while ((ret = GetMessage(&msg, NULL, 0, 0)) != 0)
-    {
-        if (ret == -1)
-        {
-            _Win_Check_Noreturn_
-            _Win_Failed_Noreturn_
-            break;
-        }
-
-        if (msg.message == WM_TIMER)
-        {
-            _S_globalShortcutBindingData->_M_tryTodo();
-        } else
-
-        if (msg.message == WM_HOTKEY)
-        {
-            auto [func, param] = _S_globalShortcutBindingData->_M_find(
-                Win::Shortcut::fromId(static_cast<int>(msg.wParam)));
-
-            (*func)(param);
-        }
-    }
-
-    KillTimer(nullptr, timerId);
+    return std::make_unique<Painter>(_M_handle);
 }
 
-void Win::bindShortcutToFunction(
-    Win::Shortcut __shortcut,
-    Win::ShortcutFunction __function,
-    Win::ShortcutFunctionParam __param,
-    bool __enable) noexcept
+Painter* Win::screenPainter() noexcept
 {
-    if (__enable)
-    {
-        if (_S_globalShortcutBindingData == nullptr)
-        {
-            _S_globalShortcutBindingData =
-                new GlobalShortcutBindingData(
-                    &Win::_S_globalShortcutBindingProc);
-        }
-
-        _S_globalShortcutBindingData->_M_applyRegister(
-            __shortcut,
-            __function,
-            __param);
-    }
-    else
-    {
-        if (_S_globalShortcutBindingData == nullptr)
-        {
-            return;
-        }
-
-        _S_globalShortcutBindingData->_M_applyUnregister(__shortcut);
-    }
-}
-
-Win::ShortcutFunction Win::functionFromBoundShortcut(
-    Win::Shortcut __shortcut,
-    Win::ShortcutFunctionParam* __param) noexcept
-{
-    auto [func, param] = _S_globalShortcutBindingData->_M_find(__shortcut);
-
-    if (__param != nullptr)
-    {
-        *__param = param;
-    }
-
-    return func;
-}
-
-std::unique_ptr<Win::Painter> Win::painter() const noexcept
-{
-    return std::make_unique<Win::Painter>(_M_handle);
-}
-
-Win::Painter* Win::screenPainter() noexcept
-{
-    static Win::Painter p(nullptr);
+    static Painter p(nullptr);
     return &p;
 }
 

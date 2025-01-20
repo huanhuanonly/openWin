@@ -1,29 +1,31 @@
 /**
+* Copyright (c) 2024-2025 Yang Huanhuan (3347484963@qq.com).
+* 
+* This software is provided "as is", without warranty of any kind, express or implied.
+*/
+
+/**
 * Direct.h In the openWin (https://github.com/huanhuanonly/openWin)
-*
+* 
 * Created by Yang Huanhuan on December 3, 2024, 11:18:27
-*
-* Email -> 3347484963@qq.com
-*
+* 
 * --- This file is a part of openWin ---
-*
-* @package pg: Encapsulates the class inherited from
-*              PathGenerator.
-*
-* @brief Encapsulates a path generator that contains
-*        only the starting point and the end point.
+* 
+* @package pg: Encapsulates the class inherited from PathGenerator.
+* 
+* @brief Encapsulates a path generator that contains only the starting point and the end point.
 */
 
 #pragma once
 
-#ifndef PG_DIRECT_H
-#define PG_DIRECT_H
+#ifndef OPENWIN_HEADER_PG_DIRECT_H
+#define OPENWIN_HEADER_PG_DIRECT_H
 
 #include "PathGenerator.h"
 
 #include <array>
 
-namespace pg
+namespace win::pg
 {
 
 template<typename _Combination, typename _ElementType, std::size_t _Dimension>
@@ -71,6 +73,6 @@ private:
     int _M_pos;
 };
 
-}  // namespace pg
+}  // namespace win::pg
 
-#endif  // PG_DIRECT_H
+#endif  // OPENWIN_HEADER_PG_DIRECT_H

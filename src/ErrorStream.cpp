@@ -1,24 +1,28 @@
 /**
+* Copyright (c) 2024-2025 Yang Huanhuan (3347484963@qq.com).
+* 
+* This software is provided "as is", without warranty of any kind, express or implied.
+*/
+
+/**
 * ErrorStream.cpp In the openWin (https://github.com/huanhuanonly/openWin)
-*
+* 
 * Created by Yang Huanhuan on December 10, 2024, 10:37:35
-*
-* Email -> 3347484963@qq.com
-*
+* 
 * --- This file is a part of openWin ---
-*
+* 
 * @brief Implement ErrorStream.h
 */
 
-#include "../include/ErrorStream.h"
+#include <openWin/ErrorStream.h>
 
-#include <Windows.h>
+#include "Built-in/_Windows.h"
 
 #include <mutex>
 
+using namespace win;
 
 static std::mutex _S_cerrMutex;
-
 
 ErrorStream::ErrorStream() noexcept
     : _M_failed(false)
