@@ -25,7 +25,7 @@
     _L_currentErrorStream->setFail();
 
 #define _Win_Test_(ret, ...) \
-    do { if ((ret) == 0) { _Win_Failed_with_(__VA_ARGS__); } } while (false);
+    do { if (not(ret)) { _Win_Failed_with_(__VA_ARGS__); } } while (false);
 
 #define _Win_Return_on_failed_ \
     do { if (_L_currentErrorStream->failed()) { return; } } while (false);

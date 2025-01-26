@@ -840,17 +840,31 @@ Rect Win::clientRect() const noexcept
         buffer.bottom - buffer.top).mapto(dpi());
 }
 
-void Win::setPos(const Point& __point, Win::PgPoint* __pg) const noexcept
+void Win::setPos(const Point& __point) const noexcept
 {
     _Win_Begin_
 
-    __pg->build(pos(), __point);
+    Point p(__point.physics(dpi()));
+
+    SetWindowPos(
+        $(_M_handle),
+        0,
+        p.x(),
+        p.y(),
+        0,
+        0,
+        SWP_NOZORDER | SWP_NOSIZE);
+}
+
+void Win::setPos(const Point& __point, const pg::BasicPathGenerator<Point>& __pg) const noexcept
+{
+    _Win_Begin_
 
     float _dpi = dpi();
 
-    for (__pg->next(); !__pg->atEnd(); __pg->next())
+    for (auto iter = __pg.build(pos(), __point); iter->remains(); iter->advance())
     {
-        Point cur(__pg->get().physics(_dpi));
+        Point cur(iter->current().physics(_dpi));
 
         bool ret = SetWindowPos(
             $(_M_handle),
@@ -865,7 +879,33 @@ void Win::setPos(const Point& __point, Win::PgPoint* __pg) const noexcept
     }
 }
 
-void Win::setPos(Win::PosFlag __flag, int __reserve, Win::PgPoint* __pg) const noexcept
+void Win::setPos(Win::PosFlag __flag, int __reserve) const noexcept
+{
+    switch (__flag)
+    {
+    case TopLeftCorner:
+        setPos(__reserve, __reserve);
+        break;
+        
+    case TopRightCorner:
+        setPos(screenWidth() - width() - __reserve, __reserve);
+        break;
+
+    case Center:
+        setPos((screenWidth() - width()) / 2, (screenHeight() - height()) / 2);
+        break;
+
+    case BottomLeftCorner:
+        setPos(__reserve, screenHeight() - height() - __reserve);
+        break;
+
+    case BottomRightCorner:
+        setPos(screenWidth() - width() - __reserve, screenHeight() - height() - __reserve);
+        break;
+    }
+}
+
+void Win::setPos(Win::PosFlag __flag, int __reserve, const pg::BasicPathGenerator<Point>& __pg) const noexcept
 {
     switch (__flag)
     {
@@ -896,24 +936,45 @@ Point Win::pos() const noexcept
     return rect().point();
 }
 
-void Win::move(int __addX, int __addY, Win::PgPoint* __pg) const noexcept
+void Win::move(int __addX, int __addY) const noexcept
+{
+    Point p(pos());
+
+    setPos(p.x() + __addX, p.y() + __addY);
+}
+
+void Win::move(int __addX, int __addY, const pg::BasicPathGenerator<Point>& __pg) const noexcept
 {
     Point p(pos());
 
     setPos(p.x() + __addX, p.y() + __addY, __pg);
 }
 
-void Win::setSize(const Size& __size, Win::PgSize* __pg) const noexcept
+void Win::setSize(const Size& __size) const noexcept
 {
     _Win_Begin_
 
-    __pg->build(size(), __size);
+    Size sz(__size.physics(dpi()));
+
+    SetWindowPos(
+        $(_M_handle),
+        0,
+        0,
+        0,
+        sz.width(),
+        sz.height(),
+        SWP_NOZORDER | SWP_NOMOVE);
+}
+
+void Win::setSize(const Size& __size, const pg::BasicPathGenerator<Size>& __pg) const noexcept
+{
+    _Win_Begin_
 
     auto _dpi = dpi();
 
-    for (__pg->next(); !__pg->atEnd(); __pg->next())
+    for (auto iter = __pg.build(size(), __size); iter->remains(); iter->advance())
     {
-        Size cur(__pg->get().physics(_dpi));
+        Size cur(iter->current().physics(_dpi));
 
         bool ret = SetWindowPos(
             $(_M_handle),
@@ -949,53 +1010,85 @@ Size Win::screenSize() noexcept
     return Size(w, h);
 }
 
-void Win::setWidth(int __width, Win::PgInt* __pg) const noexcept
+void Win::setWidth(int __width) const noexcept
 {
     _Win_Begin_
 
-    Size sz(size());
+    auto _dpi = dpi();
 
-    __pg->build(sz.width(), __width);
+    SetWindowPos(
+        $(_M_handle),
+        0,
+        0,
+        0,
+        static_cast<int>(__width / _dpi),
+        static_cast<int>(height() / _dpi),
+        SWP_NOZORDER | SWP_NOMOVE);
+}
+
+void Win::setWidth(int __width, const pg::BasicPathGenerator<int>& __pg) const noexcept
+{
+    _Win_Begin_
 
     auto _dpi = dpi();
 
-    for (__pg->next(); !__pg->atEnd(); __pg->next())
+    int h = static_cast<int>(height() / _dpi);
+
+    for (auto iter = __pg.build(width(), __width); iter->remains(); iter->advance())
     {
+        int cur(static_cast<int>(iter->current() / _dpi));
+
         bool ret = SetWindowPos(
             $(_M_handle),
             0,
             0,
             0,
-            static_cast<int>(__pg->get() / _dpi),
-            sz.height(),
+            cur,
+            h,
             SWP_NOZORDER | SWP_NOMOVE);
 
-        _Win_Test_(ret)
+        _Win_Test_(ret);
     }
 }
 
-void Win::setHeight(int __height, Win::PgInt* __pg) const noexcept
+void Win::setHeight(int __height) const noexcept
 {
     _Win_Begin_
 
-    Size sz(size());
+    auto _dpi = dpi();
 
-    __pg->build(sz.height(), __height);
+    SetWindowPos(
+        $(_M_handle),
+        0,
+        0,
+        0,
+        static_cast<int>(width() / _dpi),
+        static_cast<int>(__height / _dpi),
+        SWP_NOZORDER | SWP_NOMOVE);
+}
+
+void Win::setHeight(int __height, const pg::BasicPathGenerator<int>& __pg) const noexcept
+{
+    _Win_Begin_
 
     auto _dpi = dpi();
 
-    for (__pg->next(); !__pg->atEnd(); __pg->next())
+    int w = static_cast<int>(width() / _dpi);
+
+    for (auto iter = __pg.build(height(), __height); iter->remains(); iter->advance())
     {
+        int cur(static_cast<int>(iter->current() / _dpi));
+
         bool ret = SetWindowPos(
             $(_M_handle),
             0,
             0,
             0,
-            sz.width(),
-            static_cast<int>(__pg->get() / _dpi),
+            w,
+            cur,
             SWP_NOZORDER | SWP_NOMOVE);
 
-        _Win_Test_(ret)
+        _Win_Test_(ret);
     }
 }
 
@@ -1039,14 +1132,30 @@ int Win::screenHeight() noexcept
     return h;
 }
 
-void Win::setZoom(int __addWidth, int __addHeight, Win::PgSize* __pg) const noexcept
+void Win::setZoom(int __additionalWidth, int __additionalHeight) const noexcept
 {
     Size sz(size());
 
-    setSize(sz.w() + __addWidth, sz.h() + __addHeight, __pg);
+    setSize(sz.w() + __additionalWidth, sz.h() + __additionalHeight);
 }
 
-void Win::setZoom(double __scaleX, double __scaleY, Win::PgSize* __pg) const noexcept
+void Win::setZoom(int __additionalWidth, int __additionalHeight, const pg::BasicPathGenerator<Size>& __pg) const noexcept
+{
+    Size sz(size());
+
+    setSize(sz.w() + __additionalWidth, sz.h() + __additionalHeight, __pg);
+}
+
+void Win::setZoom(double __scaleX, double __scaleY) const noexcept
+{
+    Size sz(size());
+
+    setSize(
+        static_cast<int>(static_cast<double>(sz.w()) * __scaleX),
+        static_cast<int>(static_cast<double>(sz.h()) * __scaleY));
+}
+
+void Win::setZoom(double __scaleX, double __scaleY, const pg::BasicPathGenerator<Size>& __pg) const noexcept
 {
     Size sz(size());
 
@@ -1055,14 +1164,12 @@ void Win::setZoom(double __scaleX, double __scaleY, Win::PgSize* __pg) const noe
         static_cast<int>(static_cast<double>(sz.h()) * __scaleY), __pg);
 }
 
-void Win::setOpacity(int __value, Win::PgInt* __pg) const noexcept
+void Win::setOpacity(int __value, const pg::BasicPathGenerator<int>& __pg) const noexcept
 {
     _Win_Begin_
 
     auto style = GetWindowLong($(_M_handle), GWL_EXSTYLE);
     _Win_Check_
-
-    __pg->build(opacity(), __value);
 
     if ((style & WS_EX_LAYERED) != WS_EX_LAYERED)
     {
@@ -1070,12 +1177,12 @@ void Win::setOpacity(int __value, Win::PgInt* __pg) const noexcept
         _Win_Check_
     }
 
-    for (__pg->next(); !__pg->atEnd(); __pg->next())
+    for (auto iter = __pg.build(opacity(), __value); iter->remains(); iter->advance())
     {
         bool ret = SetLayeredWindowAttributes(
             $(_M_handle),
             0,
-            static_cast<BYTE>(std::max(0, std::min(0xff, __pg->get()))),
+            static_cast<BYTE>(std::max(0, std::min(0xff, iter->current()))),
             LWA_ALPHA);
 
         _Win_Test_(ret)

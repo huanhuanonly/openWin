@@ -8,7 +8,7 @@ int main()
 
     std::cout << win << '\n' << std::endl;
 
-    pg::Linear<Point, int, 2> linear(1.00F, 0);
+    pg::Linear<Point> linear(1.00F, 0);
 
     while (true)
     {
@@ -17,7 +17,7 @@ int main()
 
         std::cout << "From " << win.pos() << '\n';
 
-        win.moveTo(x, y, &linear);
+        win.moveTo(x, y, linear);
 
         std::cout << "To " << win.pos() << '\n';
 

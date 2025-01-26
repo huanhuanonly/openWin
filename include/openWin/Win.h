@@ -31,8 +31,7 @@
 #include "Wins.h"
 #include "Key.h"
 
-#include "pg/PathGenerator.h"
-#include "pg/Direct.h"
+#include "pg/BasicPathGenerator.h"
 
 /**
 * @brief Use the WIN_FW macro to map a function name
@@ -87,18 +86,6 @@ public:
 
     using String = std::string;
     using WString = std::wstring;
-
-    using PgPoint = pg::PathGenerator<Point, int, 2>;
-    using PgPointDefault = pg::Direct<Point, int, 2>;
-
-    using PgSize = pg::PathGenerator<Size, int, 2>;
-    using PgSizeDefault = pg::Direct<Size, int, 2>;
-
-    using PgRect = pg::PathGenerator<Rect, int, 4>;
-    using PgRectDefault = pg::Direct<Rect, int, 4>;
-
-    using PgInt = pg::PathGenerator<int, int, 1>;
-    using PgIntDefault = pg::Direct<int, int, 1>;
 
     // --- Get a window ---
     
@@ -337,13 +324,18 @@ public:
 
     [[nodiscard]] Rect clientRect() const noexcept;
 
+    void setPos(const Point& __point) const noexcept;
+    
+    inline void setPos(int __x, int __y) const noexcept
+    { setPos(Point(__x, __y)); }
+
     void setPos(
         const Point& __point,
-        PgPoint* __pg = PgPointDefault::global()) const noexcept;
+        const pg::BasicPathGenerator<Point>& __pg) const noexcept;
 
     inline void setPos(
         int __x, int __y,
-        PgPoint* __pg = PgPointDefault::global()) const noexcept
+        const pg::BasicPathGenerator<Point>& __pg) const noexcept
     { setPos(Point(__x, __y), __pg); }
 
     enum PosFlag : int
@@ -357,52 +349,79 @@ public:
 
     void setPos(
         PosFlag __flag,
-        int __reserve = 0,
-        PgPoint* __pg = PgPointDefault::global()) const noexcept;
+        int __reserve = 0) const noexcept;
+
+    inline void setPos(
+        PosFlag __flag,
+        const pg::BasicPathGenerator<Point>& __pg) const noexcept
+    { setPos(__flag, 0, __pg); }
+
+    void setPos(
+        PosFlag __flag,
+        int __reserve,
+        const pg::BasicPathGenerator<Point>& __pg) const noexcept;
 
     [[nodiscard]] Point pos() const noexcept;
 
+
+    void move(int __addX, int __addY) const noexcept;
+
     void move(
         int __addX, int __addY,
-        PgPoint* __pg = PgPointDefault::global()) const noexcept;
+        const pg::BasicPathGenerator<Point>& __pg) const noexcept;
+
 
     inline void moveTo(
         const Point& __point,
-        PgPoint* __pg = PgPointDefault::global()) const noexcept
+        const pg::BasicPathGenerator<Point>& __pg) const noexcept
     { setPos(__point, __pg); }
 
     inline void moveTo(
         int __x, int __y,
-        PgPoint* __pg = PgPointDefault::global()) const noexcept
+        const pg::BasicPathGenerator<Point>& __pg) const noexcept
     { setPos(Point(__x, __y), __pg); }
 
     inline void moveTo(
         PosFlag __flag,
-        int __reserve = 0,
-        PgPoint* __pg = PgPointDefault::global()) const noexcept
+        const pg::BasicPathGenerator<Point>& __pg) const noexcept
+    { setPos(__flag, 0, __pg); }
+
+    inline void moveTo(
+        PosFlag __flag,
+        int __reserve,
+        const pg::BasicPathGenerator<Point>& __pg) const noexcept
     { setPos(__flag, __reserve, __pg); }
 
 
+    void setSize(const Size& __size) const noexcept;
+
+    inline void setSize(int __x, int __y) const noexcept
+    { setSize(Size(__x, __y)); }
+
     void setSize(
         const Size& __size,
-        PgSize* __pg = PgSizeDefault::global()) const noexcept;
+        const pg::BasicPathGenerator<Size>& __pg) const noexcept;
 
     inline void setSize(
         int __x, int __y,
-        PgSize* __pg = PgSizeDefault::global()) const noexcept
+        const pg::BasicPathGenerator<Size>& __pg) const noexcept
     { setSize(Size(__x, __y), __pg); }
 
     [[nodiscard]] Size size() const noexcept;
 
     [[nodiscard]] static Size screenSize() noexcept;
 
+    void setWidth(int __width) const noexcept;
+
     void setWidth(
         int __width,
-        PgInt* __pg = PgIntDefault::global()) const noexcept;
+        const pg::BasicPathGenerator<int>& __pg) const noexcept;
+
+    void setHeight(int __height) const noexcept;
 
     void setHeight(
         int __height,
-        PgInt* __pg = PgIntDefault::global()) const noexcept;
+        const pg::BasicPathGenerator<int>& __pg) const noexcept;
 
     [[nodiscard]] int width() const noexcept;
     [[nodiscard]] int height() const noexcept;
@@ -410,13 +429,34 @@ public:
     [[nodiscard]] static int screenWidth() noexcept;
     [[nodiscard]] static int screenHeight() noexcept;
 
+    void setZoom(int __additionalWidth, int __additionalHeight) const noexcept;
+
+    inline void setZoom(int __additional) const noexcept
+    { setZoom(__additional, __additional); }
+
     void setZoom(
-        int __addWidth, int __addHeight,
-        PgSize* __pg = PgSizeDefault::global()) const noexcept;
+        int __additionalWidth, int __additionalHeight,
+        const pg::BasicPathGenerator<Size>& __pg) const noexcept;
+
+    inline void setZoom(
+        int __additional,
+        const pg::BasicPathGenerator<Size>& __pg) const noexcept
+    { setZoom(__additional, __additional, __pg); }
+
+
+    void setZoom(double __scaleX, double __scaleY) const noexcept;
+
+    inline void setZoom(double __scale) const noexcept
+    { setZoom(__scale, __scale); }
 
     void setZoom(
         double __scaleX, double __scaleY,
-        PgSize* __pg = PgSizeDefault::global()) const noexcept;
+        const pg::BasicPathGenerator<Size>& __pg) const noexcept;
+
+    inline void setZoom(
+        double __scale,
+        const pg::BasicPathGenerator<Size>& __pg) const noexcept
+    { setZoom(__scale, __scale, __pg); }
 
     
     /**
@@ -425,7 +465,7 @@ public:
     */
     void setOpacity(
         int __value,
-        PgInt* __pg = PgIntDefault::global()) const noexcept;
+        const pg::BasicPathGenerator<int>& __pg) const noexcept;
 
     [[nodiscard]] int opacity() const noexcept;
 

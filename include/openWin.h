@@ -23,7 +23,6 @@
 #include "openWin/Cur.h"
 #include "openWin/Painter.h"
 
-#include "openWin/pg/Direct.h"
 #include "openWin/pg/Linear.h"
 
 #endif  // OPENWIN_H

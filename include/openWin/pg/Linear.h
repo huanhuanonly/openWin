@@ -21,7 +21,7 @@
 #ifndef OPENWIN_HEADER_PG_LINEAR_H
 #define OPENWIN_HEADER_PG_LINEAR_H
 
-#include "PathGenerator.h"
+#include "BasicPathGenerator.h"
 
 #include <array>
 #include <algorithm>
@@ -29,107 +29,91 @@
 namespace win::pg
 {
 
-template<typename _Combination, typename _ElementType, std::size_t _Dimension>
-class Linear final : public PathGenerator<_Combination, _ElementType, _Dimension>
+OPENWIN_PATHGENERATOR(Linear)
 {
 public:
 
-    using typename PathGenerator<_Combination, _ElementType, _Dimension>::point_type;
-    using typename PathGenerator<_Combination, _ElementType, _Dimension>::value_type;
+    using Base = OPENWIN_PATHGENERATOR_BASE;
 
-    using real = long double;
+    using typename Base::container_type;
+    using typename Base::value_type;
 
-    static Linear* global() noexcept
-    {
-        thread_local Linear object;
-        return &object;
-    }
+    Linear() = default;
 
-    Linear() noexcept
-        : _M_speed(1.00f)
+    Linear(float __speed, std::uint32_t __waitingTime = 0) noexcept
+        : Base(__waitingTime), _M_speed(__speed)
     { }
 
-    /**
-    * @param __speed    The distance between two points
-    *                   multiplied by it, it cannot be zero;
-    * 
-    * @param __slowDown The time interval (millisecond)
-    *                   between each move;
-    */
-    Linear(float __speed, std::uint32_t __slowDown = 0)
-        : PathGenerator<_Combination, _ElementType, _Dimension>(__slowDown)
-        , _M_speed(__speed)
-    { }
-
-    virtual void build(const point_type& __from, const point_type& __to) override
+    class ForwardIterator : public Base::ForwardIterator
     {
-        _M_from = __from;
-        _M_to = __to;
-        _M_pos = 0;
-        _M_block = 1.00L;
+    public:
 
-        auto from_iter = this->combinationIterator(const_cast<point_type&>(__from));
-        auto to_iter = this->combinationIterator(const_cast<point_type&>(__to));
-        
-        for (int i = 0; i < static_cast<int>(_Dimension); ++i)
+        ForwardIterator(
+            const Base* __parent,
+            const container_type& __from,
+            const container_type& __to)
+            : Base::ForwardIterator(__parent, __from, __to)
+            , _M_pos(1)
+            , _M_block(1.00f)
         {
-            _M_block = std::max(
-                _M_block,
-                static_cast<decltype(_M_block)>(std::abs(from_iter[i] - to_iter[i])));
+            for (std::size_t i = 0; i < Base::dimension(); ++i)
+            {
+                _M_block = std::max<decltype(_M_block)>(
+                    _M_block,
+                    std::abs(Base::valueAt(__from, i) - Base::valueAt(__to, i)));
+            }
+
+            _M_block /= static_cast<const Linear*>(this->parent())->_M_speed;
         }
 
-        _M_block /= _M_speed;
-    }
+    protected:
 
-    virtual void next()
-    {
-        ++_M_pos;
-    }
+        virtual container_type _V_current() override
+        {
+            if (_M_pos == static_cast<decltype(_M_pos)>(std::ceil(_M_block)))
+            {
+                return this->end();
+            }
+
+            container_type res;
+
+            for (std::size_t i = 0; i < Base::dimension(); ++i)
+            {
+                tools::assign_as(
+                    Base::valueAt(res, i),
+                    Base::valueAt(this->starting(), i) +
+                        (Base::valueAt(this->end(), i) - Base::valueAt(this->starting(), i)) /
+                        _M_block *
+                        _M_pos);
+            }
+
+            return res;
+        }
+
+        virtual void _V_advance() override
+        { ++_M_pos; }
+
+        virtual bool _V_remains() override
+        { return _M_pos <= static_cast<decltype(_M_pos)>(std::ceil(_M_block)); }
+
+    private:
+
+        std::uint64_t _M_pos;
+        double _M_block;
+    };
 
     [[nodiscard]]
-    virtual bool atEnd() const
+    virtual std::unique_ptr<typename Base::ForwardIterator> build(
+        const container_type& __from,
+        const container_type& __to) const override
     {
-        return _M_pos > static_cast<int>(std::ceil(_M_block));
-    }
-
-protected:
-
-    [[nodiscard]]
-    virtual point_type _M_get() const override
-    {
-        if (_M_pos == 0)
-        {
-            return _M_from;
-        }
-
-        if (_M_pos == static_cast<int>(std::ceil(_M_block)))
-        {
-            return _M_to;
-        }
-
-        point_type res{};
-        auto res_iter = this->combinationIterator(res);
-
-        auto from_iter = this->combinationIterator(const_cast<point_type&>(_M_from));
-        auto to_iter = this->combinationIterator(const_cast<point_type&>(_M_to));
-
-        for (int i = 0; i < static_cast<int>(_Dimension); ++i)
-        {
-            res_iter[i] = from_iter[i] + static_cast<int>((to_iter[i] - from_iter[i]) / _M_block * _M_pos);
-        }
-
-        return res;
+        return std::unique_ptr<typename Base::ForwardIterator>(
+            static_cast<typename Base::ForwardIterator*>(new ForwardIterator(this, __from, __to)));
     }
 
 private:
 
-    point_type _M_from;
-    point_type _M_to;
-
-    int _M_pos;
-    float _M_speed;
-
-    real _M_block;
+    float _M_speed = 1.00f;
 };
 
 }  // namespace win::pg

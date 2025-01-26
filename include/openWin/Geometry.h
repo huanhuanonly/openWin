@@ -106,15 +106,15 @@ public:
     [[nodiscard]] BasicPoint physics(float __dpi) const noexcept
     {
         return BasicPoint(
-		    static_cast<value_type>(_M_x / __dpi),
-		    static_cast<value_type>(_M_y / __dpi));
+            static_cast<value_type>(_M_x / __dpi),
+            static_cast<value_type>(_M_y / __dpi));
     }
 
     BasicPoint& mapto(float __dpi) noexcept
     {
         _M_x = static_cast<value_type>(_M_x * __dpi);
-	    _M_y = static_cast<value_type>(_M_y * __dpi);
-	    return *this;
+        _M_y = static_cast<value_type>(_M_y * __dpi);
+        return *this;
     }
 
 protected:
@@ -199,15 +199,15 @@ public:
     [[nodiscard]] BasicSize physics(float __dpi) const noexcept
     {
         return BasicSize(
-		    static_cast<value_type>(_M_width / __dpi),
-		    static_cast<value_type>(_M_height / __dpi));
+            static_cast<value_type>(_M_width / __dpi),
+            static_cast<value_type>(_M_height / __dpi));
     }
 
     BasicSize& mapto(float __dpi) noexcept
     {
         _M_width = static_cast<value_type>(_M_width * __dpi);
-	    _M_height = static_cast<value_type>(_M_height * __dpi);
-	    return *this;
+        _M_height = static_cast<value_type>(_M_height * __dpi);
+        return *this;
     }
 
 protected:
@@ -267,8 +267,8 @@ public:
     BasicRect& mapto(float __dpi) noexcept
     {
         point().mapto(__dpi);
-	    size().mapto(__dpi);
-	    return *this;
+        size().mapto(__dpi);
+        return *this;
     }
 };
 
