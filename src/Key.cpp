@@ -14,32 +14,172 @@
 * @brief Implement Key.h
 */
 
+#include <algorithm>
+
 #include <openWin/Key.h>
 #include <openWin/ErrorStream.h>
 #include <openWin/Tools.h>
 
+#include "Built-in/_MacrosForErrorHandling.h"
 #include "Built-in/_Windows.h"
 
 using namespace win;
 
-void Shortcut::setRepeatable(bool __enable) noexcept
+Shortcut& Shortcut::setRepeatable(bool __enable) noexcept
 {
     if (__enable)
         tools::assign_as(modifiers, modifiers & ~MOD_NOREPEAT);
     else
         tools::assign_as(modifiers, modifiers | MOD_NOREPEAT);
+
+    return *this;
+}
+
+bool Shortcut::isRepeatable() const noexcept
+{
+    return (modifiers & MOD_NOREPEAT) != MOD_NOREPEAT;
+}
+
+bool Shortcut::contains(Modifiers __modifiers) const noexcept
+{
+    return (modifiers & __modifiers & 0b1111) == (__modifiers & 0b1111);
+}
+
+bool Shortcut::contains(Key __key) const noexcept
+{
+    return key == __key;
 }
 
 int Shortcut::getId() const noexcept
 {
-    return static_cast<int>(modifiers | (key << 4));
+    return static_cast<int>(modifiers & 0b1111 | (key << 4));
 }
 
 Shortcut Shortcut::fromId(int __id) noexcept
 {
     return Shortcut(
-        static_cast<Modifiers>(__id & 0x0F),
-        static_cast<Key>((__id >> 4) & 0xFF));
+        static_cast<Modifiers>(__id & 0b1111 | MOD_NOREPEAT),
+        static_cast<Key>((__id >> 4) & 0xff));
+}
+
+std::string keys::get_name(Modifiers __modifiers) noexcept
+{
+    std::string res;
+
+    if (__modifiers & WIN & 0b1111)
+    {
+        res += "Win";
+    }
+
+    if (__modifiers & Ctrl & 0b1111)
+    {
+        if (not res.empty())
+            res += '+';
+
+        res += "Ctrl";
+    }
+
+    if (__modifiers & Shift & 0b1111)
+    {
+        if (not res.empty())
+            res += '+';
+
+        res += "Shift";
+    }
+
+    if (__modifiers & Alt & 0b1111)
+    {
+        if (not res.empty())
+            res += '+';
+
+        res += "Alt";
+    }
+
+    return res;
+}
+
+std::string keys::get_name(Key __key) noexcept
+{
+    _Win_Static_Begin_
+
+    std::string res(20, '\0');
+
+    int size = GetKeyNameTextA(
+        (MapVirtualKeyA(__key, MAPVK_VK_TO_VSC) << 16) | (is_extended_key(__key) ? 0x01000000 : 0),
+        const_cast<char*>(res.data()),
+        static_cast<int>(res.size()));
+
+    res.resize(size);
+    return res;
+}
+
+std::string Shortcut::name() const noexcept
+{
+    std::string modname = keys::get_name(modifiers);
+    std::string keyname = keys::get_name(key);
+
+    if (not modname.empty() && not keyname.empty())
+        return modname + '+' + keyname;
+    else if (not modname.empty())
+        return modname;
+    else
+        return keyname;
+}
+
+bool keys::is_extended_key(Key __key) noexcept
+{
+    static constexpr Key extended_key_list[] = {
+        Key_Cancel,
+        Key_Clear,
+        Key_Pause,
+        Key_PageUp,
+        Key_PageDown,
+        Key_End,
+        Key_Home,
+        Key_LeftArrow,
+        Key_UpArrow,
+        Key_RightArrow,
+        Key_DownArrow,
+        Key_PrintScreen,
+        Key_Insert,
+        Key_Delete,
+        Key_LWin,
+        Key_RWin,
+        Key_Apps,
+        Key_Multiply,
+        Key_Add,
+        Key_Subtract,
+        Key_Divide,
+        Key_NumLock,
+        Key_RCtrl,
+        Key_RAlt,
+        Key_Browser_Back,
+        Key_Browser_Forward,
+        Key_Browser_Refresh,
+        Key_Browser_Stop,
+        Key_Browser_Search,
+        Key_Browser_Favorites,
+        Key_Browser_Home,
+        Key_Volume_Mute,
+        Key_Volume_Down,
+        Key_Volume_Up,
+        Key_Media_NextTrack,
+        Key_Media_PrevTrack,
+        Key_Media_Stop,
+        Key_Media_PlayOrPause,
+        Key_Launch_Mail,
+        Key_Launch_MediaSelect,
+        Key_Launch_App1,
+        Key_Launch_App2
+    };
+
+#if true
+    static_assert(
+        std::is_sorted(std::begin(extended_key_list), std::end(extended_key_list)),
+        "Ensure that the array is sorted before calling binary_search.");
+#endif
+
+    return std::binary_search(std::begin(extended_key_list), std::end(extended_key_list), __key);
 }
 
 GlobalShortcutManager::GlobalShortcutManager()
@@ -102,18 +242,16 @@ GlobalShortcutManager::ShortcutFunction GlobalShortcutManager::functionFromBound
 void GlobalShortcutManager::_M_manager() noexcept
 {
     /// @note ErrorStream::global() is defined as thread_local.
-    ErrorStreamGuard guard(*ErrorStream::global(), __func__);
+    _Win_Static_Begin_
 
     MSG msg;
 
     int ret;
 
-    while ((ret = GetMessage(&msg, NULL, 0, 0)) != 0)
+    while ((ret = GetMessage(&msg, nullptr, 0, 0)) != 0)
     {
         if (ret == -1)
         {
-            ErrorStream::global()->check();
-            ErrorStream::global()->setFail();
             break;
         }
 
@@ -152,6 +290,8 @@ void GlobalShortcutManager::Impl::_M_applyRegister(
     GlobalShortcutManager::ShortcutFunction __function,
     GlobalShortcutManager::ShortcutFunctionParam __param) noexcept
 {
+    _Win_Static_Begin_
+
     _M_mutex.lock();
     _M_taskQueue.push_front(std::make_tuple(true, __shortcut, __function, __param));
     _M_mutex.unlock();
@@ -166,6 +306,8 @@ void GlobalShortcutManager::Impl::_M_applyRegister(
 void GlobalShortcutManager::Impl::_M_applyUnregister(
     Shortcut __shortcut) noexcept
 {
+    _Win_Static_Begin_
+
     _M_mutex.lock();
     _M_taskQueue.push_front(std::make_tuple(false, __shortcut, nullptr, nullptr));
     _M_mutex.unlock();
@@ -182,7 +324,7 @@ void GlobalShortcutManager::Impl::_M_register(
     GlobalShortcutManager::ShortcutFunction __function,
     GlobalShortcutManager::ShortcutFunctionParam __param) noexcept
 {
-    ErrorStreamGuard guard(*ErrorStream::global(), __func__);
+    _Win_Static_Begin_
 
     if (RegisterHotKey(
         nullptr,
@@ -197,7 +339,7 @@ void GlobalShortcutManager::Impl::_M_register(
 void GlobalShortcutManager::Impl::_M_unregister(
     Shortcut __shortcut) noexcept
 {
-    ErrorStreamGuard guard(*ErrorStream::global(), __func__);
+    _Win_Static_Begin_
 
     if (UnregisterHotKey(nullptr, __shortcut.getId()))
     {
@@ -210,6 +352,8 @@ void GlobalShortcutManager::Impl::_M_unregister(
 
 void GlobalShortcutManager::Impl::_M_tryTodo() noexcept
 {
+    _Win_Static_Begin_
+
     _M_mutex.lock();
 
     while (_M_taskQueue.empty())

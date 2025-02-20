@@ -89,12 +89,12 @@ void Win::setErrorStream(const ErrorStream& __es)
     *_M_errorStream = __es;
 }
 
-ErrorStream& Win::errorStream()
+ErrorStream& Win::errorStream() noexcept
 {
     return *_M_errorStream;
 }
 
-const ErrorStream& Win::errorStream() const
+const ErrorStream& Win::errorStream() const noexcept
 {
     return *_M_errorStream;
 }
@@ -109,7 +109,7 @@ bool Win::failed() const noexcept
     return _M_errorStream->failed();
 }
 
-Win Win::fromPoint(const Point& __point) noexcept
+Win Win::findByPoint(const Point& __point) noexcept
 {
     _Win_Static_Begin_
 
@@ -118,82 +118,118 @@ Win Win::fromPoint(const Point& __point) noexcept
         static_cast<decltype(POINT::y)>(__point.y()) }));
 }
 
-Win Win::fromTitle(const Win::String& __title) noexcept
+Win Win::findByTitle(const Win::String& __title) noexcept
 {
     _Win_Static_Begin_
     return Win(FindWindowA(nullptr, __title.c_str()));
 }
 
-Win Win::fromTitle(const Win::WString& __title) noexcept
+Win Win::findByTitle(const Win::WString& __title) noexcept
 {
     _Win_Static_Begin_
     return Win(FindWindowW(nullptr, __title.c_str()));
 }
 
-Win Win::fromClassName(const Win::String& __className) noexcept
+Win Win::findByClassName(const Win::String& __className) noexcept
 {
     _Win_Static_Begin_
     return Win(FindWindowA(__className.c_str(), nullptr));
 }
 
-Win Win::fromClassName(const Win::WString& __className) noexcept
+Win Win::findByClassName(const Win::WString& __className) noexcept
 {
     _Win_Static_Begin_
     return Win(FindWindowW(__className.c_str(), nullptr));
 }
 
-Win Win::fromTitleAndClassName(const Win::String& __title, const Win::String& __className) noexcept
+Win Win::findByTitleAndClassName(const Win::String& __title, const Win::String& __className) noexcept
 {
     _Win_Static_Begin_
     return Win(FindWindowA(__className.c_str(), __title.c_str()));
 }
 
-Win Win::fromTitleAndClassName(const Win::WString& __title, const Win::WString& __className) noexcept
+Win Win::findByTitleAndClassName(const Win::WString& __title, const Win::WString& __className) noexcept
 {
     _Win_Static_Begin_
     return Win(FindWindowW(__className.c_str(), __title.c_str()));
 }
 
-Win Win::fromFocus() noexcept
-{
-    _Win_Static_Begin_
-    return Win(GetFocus());
-}
-
-Win Win::fromForeground() noexcept
+Win Win::currentForegroundWindow() noexcept
 {
     _Win_Static_Begin_
     return Win(GetForegroundWindow());
 }
 
-Win Win::fromConsole() noexcept
-{
-    _Win_Static_Begin_
-    return Win(GetConsoleWindow());
-}
-
-Win Win::fromShell() noexcept
+Win Win::currentShellWindow() noexcept
 {
     _Win_Static_Begin_
     return Win(GetShellWindow());
 }
 
-Win Win::fromDesktop() noexcept
+Win Win::currentDesktopWindow() noexcept
 {
     _Win_Static_Begin_
     return Win(GetDesktopWindow());
 }
 
-Win Win::fromActiveInCurrentThread() noexcept
+Win Win::currentConsoleWindowInCurrentThread() noexcept
+{
+    _Win_Static_Begin_
+    return Win(GetConsoleWindow());
+}
+
+Win Win::currentFocusWindowInCurrentThread() noexcept
+{
+    _Win_Static_Begin_
+    return Win(GetFocus());
+}
+
+Win Win::currentActiveWindowInCurrentThread() noexcept
 {
     _Win_Static_Begin_
     return Win(GetActiveWindow());
 }
 
-Win Win::fromCaptureInCurrentThread() noexcept
+Win Win::currentCaptureWindowInCurrentThread() noexcept
 {
     _Win_Static_Begin_
     return Win(GetCapture());
+}
+
+Win Win::currentFocusWindowFromThread(Win::ThreadId __threadId) noexcept
+{
+    _Win_Static_Begin_
+    
+    GUITHREADINFO buffer;
+    buffer.cbSize = sizeof(GUITHREADINFO);
+
+    GetGUIThreadInfo(__threadId, &buffer);
+
+    return Win(buffer.hwndFocus);
+}
+
+Win Win::currentActiveWindowFromThread(Win::ThreadId __threadId) noexcept
+{
+    _Win_Static_Begin_
+    
+    GUITHREADINFO buffer;
+    buffer.cbSize = sizeof(GUITHREADINFO);
+
+    GetGUIThreadInfo(__threadId, &buffer);
+
+    return Win(buffer.hwndActive);
+}
+
+Win Win::currentCaptureWindowFromThread(Win::ThreadId __threadId) noexcept
+{
+    _Win_Static_Begin_
+    
+    GUITHREADINFO buffer;
+    buffer.cbSize = sizeof(GUITHREADINFO);
+
+    GetGUIThreadInfo(__threadId, &buffer);
+
+    return Win(buffer.hwndCapture);
 }
 
 
@@ -242,11 +278,6 @@ bool Win::isValid(Win::Handle __handle) noexcept
     return IsWindow($(__handle));
 }
 
-Win::operator bool() const noexcept
-{
-    return isValid();
-}
-
 bool Win::isEmpty() const noexcept
 {
     return _M_handle == nullptr;
@@ -281,21 +312,23 @@ void Win::setActive() const noexcept
     SetActiveWindow($(_M_handle));
 }
 
-bool Win::isActived() const noexcept
+bool Win::isActive() const noexcept
 {
     _Win_Begin_
-    return *this == fromActiveInCurrentThread();
+    return *this == currentActiveWindowInCurrentThread();
 }
 
 void Win::setNoActive(bool __enable) const noexcept
 {
+    _Win_Begin_
+
     if (__enable)
         _M_addExtendStyle(WS_EX_NOACTIVATE);
     else
         _M_delExtendStyle(WS_EX_NOACTIVATE);
 }
 
-bool Win::isNoActived() const noexcept
+bool Win::isNoActive() const noexcept
 {
     return _M_hasExtendStyle(WS_EX_NOACTIVATE);
 }
@@ -303,11 +336,9 @@ bool Win::isNoActived() const noexcept
 void Win::setForeground(bool __lock) const noexcept
 {
     _Win_Begin_
-    if (SetForegroundWindow($(_M_handle)) == false)
-    {
-        _Win_Failed_
-        return;
-    }
+
+    bool ret = SetForegroundWindow($(_M_handle));
+    _Win_Test_(ret)
 
     if (__lock)
     {
@@ -318,7 +349,7 @@ void Win::setForeground(bool __lock) const noexcept
 bool Win::isForeground() const noexcept
 {
     _Win_Begin_
-    return *this == fromForeground();
+    return *this == currentForegroundWindow();
 }
 
 void Win::lockSetForeground() noexcept
@@ -342,7 +373,7 @@ void Win::setFocus() const noexcept
 bool Win::hasFocus() const noexcept
 {
     _Win_Begin_
-    return *this == fromFocus();
+    return not empty() && *this == currentFocusWindowInCurrentThread();
 }
 
 void Win::setCapture(bool __enable) const noexcept
@@ -352,6 +383,12 @@ void Win::setCapture(bool __enable) const noexcept
         SetCapture($(_M_handle));
     else
         ReleaseCapture();
+}
+
+bool Win::hasCapture() const noexcept
+{
+    _Win_Begin_
+    return not empty() && *this == currentCaptureWindowInCurrentThread();
 }
 
 Win::CharSetCode Win::charSetCode() const noexcept
@@ -367,19 +404,55 @@ float Win::dpi() const noexcept
 
     _Win_Test_(dpi, 1.00F)
 
-    return static_cast<float>(dpi >= 96 ? dpi + ((dpi - 96) / 24) + 4 : 100) / 100;
+#if false // The following two statements are equivalent.
+    return (dpi >= 96 ? dpi + ((dpi - 96) / 24.0F) + 4 : 100) / 100.0F;
+#else
+    return dpi / 96.0F;
+#endif
 }
 
-void Win::setParent(const Win& __win) const noexcept
+float Win::systemDpi() noexcept
+{
+    _Win_Static_Begin_
+    auto dpi = GetDpiForSystem();
+
+    _Win_Test_(dpi, 1.00F)
+
+#if false // The following two statements are equivalent.
+    return (dpi >= 96 ? dpi + ((dpi - 96) / 24.0F) + 4 : 100) / 100.0F;
+#else
+    return dpi / 96.0F;
+#endif
+}
+
+void Win::setParent(const Win& __newParent) const noexcept
 {
     _Win_Begin_
-    SetParent($(_M_handle), $(__win._M_handle));
+
+    if (__newParent.isEmpty())
+    {
+        setParent(nullptr);
+        _Win_Return_Nocheck_
+    }
+
+    SetWindowLong(
+        $(_M_handle),
+        GWL_EXSTYLE,
+        GetWindowLong($(_M_handle), GWL_EXSTYLE) & ~WS_POPUP | WS_CHILD);
+    _Win_Check_
+
+    SetParent($(_M_handle), $(__newParent._M_handle));
 }
 
 void Win::setParent(std::nullptr_t) const noexcept
 {
     _Win_Begin_
+
+    _M_delExtendStyle(WS_CHILD);
+
     SetParent($(_M_handle), nullptr);
+
+    // _M_addExtendStyle(WS_POPUP);
 }
 
 Win Win::parent(bool __onlyParent) const noexcept
@@ -393,6 +466,24 @@ bool Win::hasParent() const noexcept
 {
     _Win_Begin_
     return static_cast<bool>(GetAncestor($(_M_handle), GA_PARENT));
+}
+
+Win Win::owner() const noexcept
+{
+    _Win_Begin_
+    return Win(GetWindow($(_M_handle), GW_OWNER));
+}
+
+Win Win::root() const noexcept
+{
+    _Win_Begin_
+    return Win(GetAncestor($(_M_handle), GA_ROOT));
+}
+
+Win Win::ownedRoot() const noexcept
+{
+    _Win_Begin_
+    return Win(GetAncestor($(_M_handle), GA_ROOTOWNER));
 }
 
 WinList Win::children() const noexcept
@@ -437,15 +528,22 @@ Win Win::topChild() const noexcept
     return Win(GetTopWindow($(_M_handle)));
 }
 
+Win Win::lastActivePopup() const noexcept
+{
+    _Win_Begin_
+    return Win(GetLastActivePopup($(_M_handle)));
+}
+
 bool Win::isParent() const noexcept
 {
+    _Win_Begin_Nocheck_
     return isChild() == false;
 }
 
 bool Win::isChild() const noexcept
 {
-    _Win_Begin_
-    return (GetWindowLong($(_M_handle), GWL_STYLE) & WS_CHILD) == WS_CHILD;
+    _Win_Begin_Nocheck_
+    return _M_hasStyle(WS_CHILD);
 }
 
 bool Win::isChildOf(const Win& __parent) const noexcept
@@ -505,6 +603,10 @@ WinList Win::list() noexcept
 WinList Win::listInSameThread() const noexcept
 {
     _Win_Begin_
+
+#if false
+    return listFromThread(threadId());
+#else
     WinList buffers;
 
     EnumThreadWindows(
@@ -518,9 +620,28 @@ WinList Win::listInSameThread() const noexcept
         reinterpret_cast<LPARAM>(&buffers));
 
     return buffers;
+#endif
 }
 
-void Win::forward() const noexcept
+WinList Win::listFromThread(Win::ThreadId __threadId) noexcept
+{
+    _Win_Static_Begin_
+    WinList buffers;
+
+    EnumThreadWindows(
+        __threadId,
+        static_cast<WNDENUMPROC>(
+            [](HWND hWnd, LPARAM lParam) -> BOOL
+            {
+                reinterpret_cast<WinList*>(lParam)->push_back(Win(hWnd));
+                return true;
+            }),
+        reinterpret_cast<LPARAM>(&buffers));
+
+    return buffers;
+}
+
+void Win::setZOrderTop() const noexcept
 {
     _Win_Begin_
     SetWindowPos(
@@ -530,7 +651,7 @@ void Win::forward() const noexcept
         SWP_NOMOVE | SWP_NOSIZE);
 }
 
-void Win::backward() const noexcept
+void Win::setZOrderBottom() const noexcept
 {
     _Win_Begin_
     SetWindowPos(
@@ -553,47 +674,37 @@ void Win::setTopmost(bool __enable) const noexcept
 bool Win::isTopmost() const noexcept
 {
     _Win_Begin_
-    return (GetWindowLong($(_M_handle), GWL_EXSTYLE) & WS_EX_TOPMOST) == WS_EX_TOPMOST;
+    return _M_hasExtendStyle(WS_EX_TOPMOST);
 }
 
-Win Win::firstLayer() const noexcept
+Win Win::highest() const noexcept
 {
     _Win_Begin_
     return Win(GetWindow($(_M_handle), GW_HWNDFIRST));
 }
 
-Win Win::lastLayer() const noexcept
+Win Win::lowest() const noexcept
 {
     _Win_Begin_
     return Win(GetWindow($(_M_handle), GW_HWNDLAST));
 }
 
-Win Win::nextLayer() const noexcept
+Win Win::below() const noexcept
 {
     _Win_Begin_
     return Win(GetWindow($(_M_handle), GW_HWNDNEXT));
 }
 
-Win Win::prevLayer() const noexcept
+Win Win::above() const noexcept
 {
     _Win_Begin_
     return Win(GetWindow($(_M_handle), GW_HWNDPREV));
 }
 
-Win Win::owner() const noexcept
-{
-    _Win_Begin_
-    return Win(GetWindow($(_M_handle), GW_OWNER));
-}
-
-Win Win::root() const noexcept
-{
-    _Win_Begin_
-    return Win(GetAncestor($(_M_handle), GA_ROOT));
-}
-
 void Win::becomePopup(bool __enable) const noexcept
 {
+    _Win_Begin_Nocheck_
+
     if (__enable)
         _M_addStyle(WS_POPUP);
     else
@@ -602,11 +713,21 @@ void Win::becomePopup(bool __enable) const noexcept
 
 bool Win::isPopup() const noexcept
 {
+    _Win_Begin_Nocheck_
     return _M_hasStyle(WS_POPUP);
+}
+
+bool Win::hasPopupInScreen() noexcept
+{
+    _Win_Static_Begin_
+
+    return static_cast<bool>(AnyPopup());
 }
 
 void Win::becomeTool(bool __enable) const noexcept
 {
+    _Win_Begin_Nocheck_
+
     if (__enable)
         _M_addExtendStyle(WS_EX_TOOLWINDOW);
     else
@@ -615,11 +736,29 @@ void Win::becomeTool(bool __enable) const noexcept
 
 bool Win::isTool() const noexcept
 {
+    _Win_Begin_Nocheck_
     return _M_hasExtendStyle(WS_EX_TOOLWINDOW);
 }
 
-bool Win::isMdiChild() const noexcept
+void Win::becomeLayered(bool __enable) const noexcept
 {
+    _Win_Begin_Nocheck_
+
+    if (__enable)
+        _M_addExtendStyle(WS_EX_LAYERED);
+    else
+        _M_delExtendStyle(WS_EX_LAYERED);
+}
+
+bool Win::isLayered() const noexcept
+{
+    _Win_Begin_Nocheck_
+    return _M_hasExtendStyle(WS_EX_LAYERED);
+}
+
+bool Win::isMDIChild() const noexcept
+{
+    _Win_Begin_Nocheck_
     return _M_hasExtendStyle(WS_EX_MDICHILD);
 }
 
@@ -653,6 +792,42 @@ void Win::hidePopups() const noexcept
     ShowOwnedPopups($(_M_handle), false);
 }
 
+void Win::setDisplayProtection(bool __enable) const noexcept
+{
+    _Win_Begin_
+
+    if (__enable)
+    {
+        SetWindowDisplayAffinity(
+            $(_M_handle),
+#ifdef WDA_EXCLUDEFROMCAPTURE
+            WDA_EXCLUDEFROMCAPTURE
+#else
+            WDA_MONITOR
+#endif
+        );
+    }
+    else
+    {
+        SetWindowDisplayAffinity($(_M_handle), WDA_NONE);
+    }
+}
+
+bool Win::isDisplayProtected() const noexcept
+{
+    _Win_Begin_
+
+    if (not isLayered())
+    {
+        return false;
+    }
+
+    DWORD result;
+    GetWindowDisplayAffinity($(_M_handle), &result);
+
+    return result;
+}
+
 void Win::maximize() const noexcept
 {
     _Win_Begin_
@@ -662,7 +837,9 @@ void Win::maximize() const noexcept
 void Win::minimize() const noexcept
 {
     _Win_Begin_
-    ShowWindow($(_M_handle), SW_MINIMIZE);
+    ShowWindow(
+        $(_M_handle),
+        isCreatedByCurrentThread() ? SW_MINIMIZE : SW_FORCEMINIMIZE);
 }
 
 void Win::restore() const noexcept
@@ -685,7 +862,9 @@ bool Win::isMinimized() const noexcept
 
 bool Win::isRestored() const noexcept
 {
-    if (!isMaximized() && !isMinimized() && !isArranged())
+    _Win_Begin_Nocheck_
+
+    if (not isMaximized() && not isMinimized() && not isArranged())
         return true;
     else
         return false;
@@ -694,23 +873,19 @@ bool Win::isRestored() const noexcept
 bool Win::isArranged() const noexcept
 {
     _Win_Begin_
-    HMODULE hModule = LoadLibraryA("User32.dll");
 
-    if (hModule == nullptr)
-    {
-        _Win_Failed_with_(false)
-    }
+    HMODULE hModule = LoadLibraryA("User32.dll");
+    _Win_Test_(hModule, false)
 
     BOOL (WINAPI *isWindowArranged)(HWND)
         = reinterpret_cast<decltype(isWindowArranged)>(
             GetProcAddress(hModule, "isWindowArranged"));
-
     _Win_Check_with_(false)
 
     bool result = static_cast<bool>((*isWindowArranged)($(_M_handle)));
+    _Win_Check_with_(false)
 
     FreeLibrary(hModule);
-    
     return result;
 }
 
@@ -792,6 +967,44 @@ Win::WString Win::WIN_FW(className)() const noexcept
 
     buffer.resize(len);
     return buffer;
+}
+
+Win::String Win::path() const noexcept
+{
+    _Win_Begin_
+
+    Win::String::value_type buffer[MAX_PATH];
+
+    buffer[0] = '\0';
+
+    HANDLE hProcess = OpenProcess(PROCESS_ALL_ACCESS, false, processId());
+    _Win_Test_(hProcess, Win::String())
+
+    GetModuleFileNameExA(hProcess, nullptr, buffer, MAX_PATH);
+    _Win_Check_Noreturn_
+
+    CloseHandle(hProcess);
+
+    return Win::String(buffer);
+}
+
+Win::WString Win::WIN_FW(path)() const noexcept
+{
+    _Win_Begin_
+
+    Win::WString::value_type buffer[MAX_PATH];
+
+    buffer[0] = '\0';
+
+    HANDLE hProcess = OpenProcess(PROCESS_ALL_ACCESS, false, processId());
+    _Win_Test_(hProcess, Win::WString())
+
+    GetModuleFileNameExW(hProcess, nullptr, buffer, MAX_PATH);
+    _Win_Check_Noreturn_
+
+    CloseHandle(hProcess);
+
+    return Win::WString(buffer);
 }
 
 void Win::setRect(const Rect& __rect) const noexcept
@@ -881,6 +1094,8 @@ void Win::setPos(const Point& __point, const pg::BasicPathGenerator<Point>& __pg
 
 void Win::setPos(Win::PosFlag __flag, int __reserve) const noexcept
 {
+    _Win_Begin_Nocheck_
+
     switch (__flag)
     {
     case TopLeftCorner:
@@ -907,6 +1122,8 @@ void Win::setPos(Win::PosFlag __flag, int __reserve) const noexcept
 
 void Win::setPos(Win::PosFlag __flag, int __reserve, const pg::BasicPathGenerator<Point>& __pg) const noexcept
 {
+    _Win_Begin_Nocheck_
+
     switch (__flag)
     {
     case TopLeftCorner:
@@ -933,20 +1150,23 @@ void Win::setPos(Win::PosFlag __flag, int __reserve, const pg::BasicPathGenerato
 
 Point Win::pos() const noexcept
 {
+    _Win_Begin_Nocheck_
     return rect().point();
 }
 
 void Win::move(int __addX, int __addY) const noexcept
 {
-    Point p(pos());
+    _Win_Begin_Nocheck_
 
+    Point p(pos());
     setPos(p.x() + __addX, p.y() + __addY);
 }
 
 void Win::move(int __addX, int __addY, const pg::BasicPathGenerator<Point>& __pg) const noexcept
 {
-    Point p(pos());
+    _Win_Begin_Nocheck_
 
+    Point p(pos());
     setPos(p.x() + __addX, p.y() + __addY, __pg);
 }
 
@@ -991,6 +1211,7 @@ void Win::setSize(const Size& __size, const pg::BasicPathGenerator<Size>& __pg) 
 
 Size Win::size() const noexcept
 {
+    _Win_Begin_Nocheck_
     return rect().size();
 }
 
@@ -999,14 +1220,12 @@ Size Win::screenSize() noexcept
     _Win_Static_Begin_
 
     HDC hDc = GetDC(nullptr);
-
     _Win_Test_(hDc, Size())
 
     int w = GetDeviceCaps(hDc, DESKTOPHORZRES);
     int h = GetDeviceCaps(hDc, DESKTOPVERTRES);
 
     ReleaseDC(nullptr, hDc);
-
     return Size(w, h);
 }
 
@@ -1094,11 +1313,13 @@ void Win::setHeight(int __height, const pg::BasicPathGenerator<int>& __pg) const
 
 int Win::width() const noexcept
 {
+    _Win_Begin_Nocheck_
     return size().width();
 }
 
 int Win::height() const noexcept
 {
+    _Win_Begin_Nocheck_
     return size().height();
 }
 
@@ -1134,22 +1355,25 @@ int Win::screenHeight() noexcept
 
 void Win::setZoom(int __additionalWidth, int __additionalHeight) const noexcept
 {
-    Size sz(size());
+    _Win_Begin_Nocheck_
 
+    Size sz(size());
     setSize(sz.w() + __additionalWidth, sz.h() + __additionalHeight);
 }
 
 void Win::setZoom(int __additionalWidth, int __additionalHeight, const pg::BasicPathGenerator<Size>& __pg) const noexcept
 {
-    Size sz(size());
+    _Win_Begin_Nocheck_
 
+    Size sz(size());
     setSize(sz.w() + __additionalWidth, sz.h() + __additionalHeight, __pg);
 }
 
 void Win::setZoom(double __scaleX, double __scaleY) const noexcept
 {
-    Size sz(size());
+    _Win_Begin_Nocheck_
 
+    Size sz(size());
     setSize(
         static_cast<int>(static_cast<double>(sz.w()) * __scaleX),
         static_cast<int>(static_cast<double>(sz.h()) * __scaleY));
@@ -1157,25 +1381,34 @@ void Win::setZoom(double __scaleX, double __scaleY) const noexcept
 
 void Win::setZoom(double __scaleX, double __scaleY, const pg::BasicPathGenerator<Size>& __pg) const noexcept
 {
-    Size sz(size());
+    _Win_Begin_Nocheck_
 
+    Size sz(size());
     setSize(
         static_cast<int>(static_cast<double>(sz.w()) * __scaleX),
         static_cast<int>(static_cast<double>(sz.h()) * __scaleY), __pg);
+}
+
+void Win::setOpacity(int __value) const noexcept
+{
+    _Win_Begin_
+
+    becomeLayered();
+    _Win_Return_on_failed_
+
+    SetLayeredWindowAttributes(
+        $(_M_handle),
+        0,
+        static_cast<BYTE>(std::max(0, std::min(0xff, __value))),
+        LWA_ALPHA);
 }
 
 void Win::setOpacity(int __value, const pg::BasicPathGenerator<int>& __pg) const noexcept
 {
     _Win_Begin_
 
-    auto style = GetWindowLong($(_M_handle), GWL_EXSTYLE);
-    _Win_Check_
-
-    if ((style & WS_EX_LAYERED) != WS_EX_LAYERED)
-    {
-        SetWindowLong($(_M_handle), GWL_EXSTYLE, style | WS_EX_LAYERED);
-        _Win_Check_
-    }
+     becomeLayered();
+    _Win_Return_on_failed_
 
     for (auto iter = __pg.build(opacity(), __value); iter->remains(); iter->advance())
     {
@@ -1249,29 +1482,62 @@ Color Win::transparencyColor() const noexcept
     return buffer;
 }
 
+Point Win::toScreenCoordinates(const Point& __clientPoint) const noexcept
+{
+    _Win_Begin_
+
+    auto _dpi = dpi();
+
+    Point p = __clientPoint.physics(_dpi);
+
+    ClientToScreen($(_M_handle), reinterpret_cast<POINT*>(&p));
+
+    return p.mapto(_dpi);
+}
+
+Point Win::toClientCoordinates(const Point& __screenPoint) const noexcept
+{
+    _Win_Begin_
+
+    auto _dpi = dpi();
+
+    Point p = __screenPoint.physics(_dpi);
+
+    ScreenToClient($(_M_handle), reinterpret_cast<POINT*>(&p));
+
+    return p.mapto(_dpi);
+}
 
 void Win::_M_addStyle(std::int32_t __style) const noexcept
 {
     _Win_Begin_
 
-    SetWindowLong(
-        $(_M_handle),
-        GWL_STYLE,
-        GetWindowLong(
+    auto currentStyle = GetWindowLong($(_M_handle), GWL_STYLE);
+    _Win_Check_
+
+    if ((currentStyle & __style) != __style)
+    {
+        SetWindowLong(
             $(_M_handle),
-            GWL_STYLE) | __style);
+            GWL_STYLE,
+            currentStyle | __style);
+    }
 }
 
 void Win::_M_delStyle(std::int32_t __style) const noexcept
 {
     _Win_Begin_
 
-    SetWindowLong(
-        $(_M_handle),
-        GWL_STYLE,
-        GetWindowLong(
+    auto currentStyle = GetWindowLong($(_M_handle), GWL_EXSTYLE);
+    _Win_Check_
+
+    if (currentStyle & __style)
+    {
+        SetWindowLong(
             $(_M_handle),
-            GWL_STYLE) & ~__style);
+            GWL_STYLE,
+            currentStyle & ~__style);
+    }
 }
 
 bool Win::_M_hasStyle(std::int32_t __style) const noexcept
@@ -1285,24 +1551,32 @@ void Win::_M_addExtendStyle(std::int32_t __style) const noexcept
 {
     _Win_Begin_
 
-    SetWindowLong(
-        $(_M_handle),
-        GWL_EXSTYLE,
-        GetWindowLong(
+    auto currentStyle = GetWindowLong($(_M_handle), GWL_EXSTYLE);
+    _Win_Check_
+
+    if ((currentStyle & __style) != __style)
+    {
+        SetWindowLong(
             $(_M_handle),
-            GWL_EXSTYLE) | __style);
+            GWL_EXSTYLE,
+            currentStyle | __style);
+    }
 }
 
 void Win::_M_delExtendStyle(std::int32_t __style) const noexcept
 {
     _Win_Begin_
 
-    SetWindowLong(
-        $(_M_handle),
-        GWL_EXSTYLE,
-        GetWindowLong(
+    auto currentStyle = GetWindowLong($(_M_handle), GWL_EXSTYLE);
+    _Win_Check_
+
+    if (currentStyle & __style)
+    {
+        SetWindowLong(
             $(_M_handle),
-            GWL_EXSTYLE) & ~__style);
+            GWL_EXSTYLE,
+            currentStyle & ~__style);
+    }
 }
 
 bool Win::_M_hasExtendStyle(std::int32_t __style) const noexcept
@@ -1314,6 +1588,8 @@ bool Win::_M_hasExtendStyle(std::int32_t __style) const noexcept
 
 void Win::setBorder(bool __enable) const noexcept
 {
+    _Win_Begin_Nocheck_
+
     if (__enable)
         _M_addStyle(WS_BORDER);
     else
@@ -1322,11 +1598,14 @@ void Win::setBorder(bool __enable) const noexcept
 
 bool Win::hasBorder() const noexcept
 {
+    _Win_Begin_Nocheck_
     return _M_hasStyle(WS_BORDER);
 }
 
 void Win::setSunkenEdge(bool __enable) const noexcept
 {
+    _Win_Begin_Nocheck_
+
     if (__enable)
         _M_addExtendStyle(WS_EX_CLIENTEDGE);
     else
@@ -1335,11 +1614,14 @@ void Win::setSunkenEdge(bool __enable) const noexcept
 
 bool Win::hasSunkenEdge() const noexcept
 {
+    _Win_Begin_Nocheck_
     return _M_hasExtendStyle(WS_EX_CLIENTEDGE);
 }
 
 void Win::setRaisedEdge(bool __enable) const noexcept
 {
+    _Win_Begin_Nocheck_
+
     if (__enable)
         _M_addExtendStyle(WS_EX_WINDOWEDGE);
     else
@@ -1348,11 +1630,14 @@ void Win::setRaisedEdge(bool __enable) const noexcept
 
 bool Win::hasRaisedEdge() const noexcept
 {
+    _Win_Begin_Nocheck_
     return _M_hasExtendStyle(WS_EX_WINDOWEDGE);
 }
 
 void Win::setStaticEdge(bool __enable) const noexcept
 {
+    _Win_Begin_Nocheck_
+
     if (__enable)
         _M_addExtendStyle(WS_EX_STATICEDGE);
     else
@@ -1361,11 +1646,14 @@ void Win::setStaticEdge(bool __enable) const noexcept
 
 bool Win::hasStaticEdge() const noexcept
 {
+    _Win_Begin_Nocheck_
     return _M_hasExtendStyle(WS_EX_STATICEDGE);
 }
 
 void Win::setTitlebar(bool __enable) const noexcept
 {
+    _Win_Begin_Nocheck_
+
     if (__enable)
         _M_addStyle(WS_CAPTION);
     else
@@ -1374,11 +1662,14 @@ void Win::setTitlebar(bool __enable) const noexcept
 
 bool Win::hasTitlebar() const noexcept
 {
+    _Win_Begin_Nocheck_
     return _M_hasStyle(WS_CAPTION);
 }
 
 void Win::setMenubar(bool __enable) const noexcept
 {
+    _Win_Begin_Nocheck_
+
     if (__enable)
         _M_addStyle(WS_SYSMENU | WS_CAPTION);
     else
@@ -1387,11 +1678,14 @@ void Win::setMenubar(bool __enable) const noexcept
 
 bool Win::hasMenubar() const noexcept
 {
+    _Win_Begin_Nocheck_
     return _M_hasStyle(WS_SYSMENU);
 }
 
 void Win::setScroll(Win::Orientation __orientation, bool __enable) const noexcept
 {
+    _Win_Begin_Nocheck_
+
     std::int32_t style;
 
     if (__orientation == Win::Vertical)
@@ -1409,6 +1703,8 @@ void Win::setScroll(Win::Orientation __orientation, bool __enable) const noexcep
 
 bool Win::hasScroll(Win::Orientation __orientation) const noexcept
 {
+    _Win_Begin_Nocheck_
+
     std::int32_t style;
 
     if (__orientation == Win::Vertical)
@@ -1421,16 +1717,19 @@ bool Win::hasScroll(Win::Orientation __orientation) const noexcept
     return _M_hasStyle(style);
 }
 
-void Win::setSizebox(bool __enable) const noexcept
+void Win::setSizingBorder(bool __enable) const noexcept
 {
+    _Win_Begin_Nocheck_
+
     if (__enable)
         _M_addStyle(WS_SIZEBOX);
     else
         _M_delStyle(WS_SIZEBOX);
 }
 
-bool Win::hasSizebox() const noexcept
+bool Win::hasSizingBorder() const noexcept
 {
+    _Win_Begin_Nocheck_
     return _M_hasStyle(WS_SIZEBOX);
 }
 
@@ -1443,6 +1742,7 @@ void Win::setTitlebarButtons(
     if (__enable)
     {
         setMenubar(true);
+        _Win_Return_on_failed_
     }
 
     std::int32_t style = 0;
@@ -1538,6 +1838,8 @@ bool Win::hasTitlebarButtons(
 
 void Win::setTaskbarIcon(bool __enable) const noexcept
 {
+    _Win_Begin_Nocheck_
+
     if (__enable)
         _M_addExtendStyle(WS_EX_APPWINDOW);
     else
@@ -1546,11 +1848,14 @@ void Win::setTaskbarIcon(bool __enable) const noexcept
 
 bool Win::hasTaskbarIcon() const noexcept
 {
+    _Win_Begin_Nocheck_
     return _M_hasExtendStyle(WS_EX_APPWINDOW);
 }
 
 void Win::setDoubleBufferDrawing(bool __enable) const noexcept
 {
+    _Win_Begin_Nocheck_
+
     if (__enable)
         _M_addExtendStyle(WS_EX_COMPOSITED);
     else
@@ -1559,11 +1864,14 @@ void Win::setDoubleBufferDrawing(bool __enable) const noexcept
 
 bool Win::isDoubleBufferDrawing() const noexcept
 {
+    _Win_Begin_Nocheck_
     return _M_hasExtendStyle(WS_EX_COMPOSITED);
 }
 
 void Win::setAcceptFiles(bool __enable) const noexcept
 {
+    _Win_Begin_Nocheck_
+
     if (__enable)
         DragAcceptFiles($(_M_handle), true),
         _M_addExtendStyle(WS_EX_ACCEPTFILES);
@@ -1572,8 +1880,9 @@ void Win::setAcceptFiles(bool __enable) const noexcept
         _M_delExtendStyle(WS_EX_ACCEPTFILES);
 }
 
-bool Win::isAcceptFiles() const noexcept
+bool Win::isAcceptingFiles() const noexcept
 {
+    _Win_Begin_Nocheck_
     return _M_hasExtendStyle(WS_EX_ACCEPTFILES);
 }
 
@@ -1582,10 +1891,12 @@ void Win::flash(bool __enable) const noexcept
     _Win_Begin_
 
     if (__enable)
+    {
         FlashWindow($(_M_handle), true);
+    }
     else
     {
-        FLASHWINFO info {
+        FLASHWINFO info{
             static_cast<decltype(info.cbSize)>(
                 sizeof(decltype(info))),
             $(_M_handle),
@@ -1602,13 +1913,13 @@ void Win::flash(int __count, Win::Timeout __timeout, bool __caption) const noexc
 {
     _Win_Begin_
 
-    FLASHWINFO info {
+    FLASHWINFO info{
             static_cast<decltype(info.cbSize)>(
                 sizeof(decltype(info))),
             $(_M_handle),
             static_cast<decltype(info.dwFlags)>(
-                __count > 0 ? (__caption ? FLASHW_ALL : FLASHW_TRAY) : FLASHW_TIMER),
-            static_cast<decltype(info.uCount)>(std::max(__count, 0)),
+                (__caption ? FLASHW_ALL : FLASHW_TRAY) | (__count > 0 ? 0 : FLASHW_TIMER)),
+            std::max<decltype(info.uCount)>(__count, 0),
             __timeout
     };
 
@@ -1619,7 +1930,7 @@ void Win::flash(Win::FlashFlag, Win::Timeout __timeout, bool __caption) const no
 {
     _Win_Begin_
 
-    FLASHWINFO info {
+    FLASHWINFO info{
             static_cast<decltype(info.cbSize)>(
                 sizeof(decltype(info))),
             $(_M_handle),
@@ -1643,7 +1954,7 @@ void Win::update(bool __eraseBackground) const noexcept
     _Win_Test_(ret)
 }
 
-void Win::update(bool __eraseBackground, const Rect& __clientRect) const noexcept
+void Win::update(const Rect& __clientRect, bool __eraseBackground) const noexcept
 {
     _Win_Begin_
 
@@ -1697,22 +2008,26 @@ Win::ProcessId Win::processId() const noexcept
     return id;
 }
 
-bool Win::isInCurrentThread() const noexcept
+bool Win::isCreatedByCurrentThread() const noexcept
 {
     _Win_Begin_
     return threadId() == GetCurrentThreadId();
 }
 
-bool Win::isInCurrentProcess() const noexcept
+bool Win::isCreatedByCurrentProcess() const noexcept
 {
     _Win_Begin_
     return processId() == GetCurrentProcessId();
 }
 
-void Win::close() const noexcept
+void Win::close(Win::Timeout __timeout) const noexcept
 {
     _Win_Begin_
-    CloseWindow($(_M_handle));
+
+    if (__timeout == 0)
+        PostMessage($(_M_handle), WM_CLOSE, 0, 0);
+    else
+        _M_sendMessageA(WM_CLOSE, 0, 0, __timeout);
 }
 
 void Win::destroy() const noexcept
@@ -1745,51 +2060,6 @@ void Win::killProcess(int __exitCode) const noexcept
     _Win_Check_Noreturn_
 
     CloseHandle(hProcess);
-}
-
-Win::String Win::path() const noexcept
-{
-    _Win_Begin_
-
-    Win::String::value_type buffer[MAX_PATH];
-
-    buffer[0] = '\0';
-
-    HANDLE hProcess = OpenProcess(PROCESS_ALL_ACCESS, false, processId());
-    _Win_Test_(hProcess, Win::String())
-
-    GetModuleFileNameExA(hProcess, nullptr, buffer, MAX_PATH);
-    _Win_Check_Noreturn_
-
-    CloseHandle(hProcess);
-
-    return Win::String(buffer);
-}
-
-Win::WString Win::WIN_FW(path)() const noexcept
-{
-    _Win_Begin_
-
-    Win::WString::value_type buffer[MAX_PATH];
-
-    buffer[0] = '\0';
-
-    HANDLE hProcess = OpenProcess(PROCESS_ALL_ACCESS, false, processId());
-    _Win_Test_(hProcess, Win::WString())
-
-    GetModuleFileNameExW(hProcess, nullptr, buffer, MAX_PATH);
-    _Win_Check_Noreturn_
-
-    CloseHandle(hProcess);
-
-    return Win::WString(buffer);
-}
-
-bool Win::hasPopupInScreen() noexcept
-{
-    _Win_Static_Begin_
-
-    return static_cast<bool>(AnyPopup());
 }
 
 void Win::_M_sendMessageA(
@@ -1990,6 +2260,8 @@ void Win::post(const Win::WString& __text, bool __linebreakKey) const noexcept
 
 void Win::send(char __word, Win::Timeout __timeout) const noexcept
 {
+    _Win_Begin_Nocheck_
+
     WM_CHAR_LPARAM lParam;
     lParam._uint_v = 0;
     lParam._struct_v.repeatCount = 1;
@@ -1999,6 +2271,8 @@ void Win::send(char __word, Win::Timeout __timeout) const noexcept
 
 void Win::post(char __word) const noexcept
 {
+    _Win_Begin_
+
     WM_CHAR_LPARAM lParam;
     lParam._uint_v = 0;
     lParam._struct_v.repeatCount = 1;
@@ -2008,6 +2282,8 @@ void Win::post(char __word) const noexcept
 
 void Win::send(wchar_t __word, Win::Timeout __timeout) const noexcept
 {
+    _Win_Begin_Nocheck_
+
     WM_CHAR_LPARAM lParam;
     lParam._uint_v = 0;
     lParam._struct_v.repeatCount = 1;
@@ -2017,6 +2293,8 @@ void Win::send(wchar_t __word, Win::Timeout __timeout) const noexcept
 
 void Win::post(wchar_t __word) const noexcept
 {
+    _Win_Begin_
+
     WM_CHAR_LPARAM lParam;
     lParam._uint_v = 0;
     lParam._struct_v.repeatCount = 1;
@@ -2026,18 +2304,24 @@ void Win::post(wchar_t __word) const noexcept
 
 void Win::send(Key __key, Win::Timeout __timeout) const noexcept
 {
+    _Win_Begin_Nocheck_
+
     send(__key, OnlyPress, __timeout);
     send(__key, OnlyRelease, __timeout);
 }
 
 void Win::post(Key __key) const noexcept
 {
+    _Win_Begin_Nocheck_
+
     post(__key, OnlyPress);
     post(__key, OnlyRelease);
 }
 
 void Win::send(Key __key, Win::KeyAction __action, Win::Timeout __timeout) const noexcept
 {
+    _Win_Begin_Nocheck_
+
     WM_CHAR_LPARAM lParam;
 
     lParam._uint_v = 0;
@@ -2067,6 +2351,8 @@ void Win::send(Key __key, Win::KeyAction __action, Win::Timeout __timeout) const
 
 void Win::post(Key __key, Win::KeyAction __action) const noexcept
 {
+    _Win_Begin_
+
     WM_CHAR_LPARAM lParam;
 
     lParam._uint_v = 0;
@@ -2148,26 +2434,31 @@ Win::Message Win::waitCurrentThreadMsg(Win::Message::msg_type __msg) noexcept
 
 void Win::sendClearMsg(Win::Timeout __timeout) const noexcept
 {
+    _Win_Begin_Nocheck_
     _M_sendMessageW(WM_CLEAR, 0, 0, __timeout);
 }
 
 void Win::sendCopyMsg(Win::Timeout __timeout) const noexcept
 {
+    _Win_Begin_Nocheck_
     _M_sendMessageW(WM_COPY, 0, 0, __timeout);
 }
 
 void Win::sendCutMsg(Win::Timeout __timeout) const noexcept
 {
+    _Win_Begin_Nocheck_
     _M_sendMessageW(WM_CUT, 0, 0, __timeout);
 }
 
 void Win::sendPasteMsg(Win::Timeout __timeout) const noexcept
 {
+    _Win_Begin_Nocheck_
     _M_sendMessageW(WM_PASTE, 0, 0, __timeout);
 }
 
 void Win::sendUndoMsg(Win::Timeout __timeout) const noexcept
 {
+    _Win_Begin_Nocheck_
     _M_sendMessageW(WM_UNDO, 0, 0, __timeout);
 }
 
@@ -2198,6 +2489,13 @@ Painter* Win::screenPainter() noexcept
 {
     static Painter p(nullptr);
     return &p;
+}
+
+void Win::play(Win::SystemSoundFlag __flag) noexcept
+{
+    _Win_Static_Begin_
+
+    MessageBeep(__flag);
 }
 
 Win::ModalDialogButtonsId Win::createModalDialogBox(

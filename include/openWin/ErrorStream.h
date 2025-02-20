@@ -25,6 +25,9 @@
 #include <forward_list>
 #include <vector>
 
+#include "ds/ForwardList.h"
+#include "ds/LinkedList.h"
+
 namespace win
 {
 
@@ -47,74 +50,97 @@ public:
     virtual void onFailed(const std::string& __text);
 
     /**
-    * @returns the text corresponding to the error code, or
-    *          returns null if there is no corresponding text.
+    * @return The text corresponding to the error code, or returns null if
+    *         there is no corresponding text.
     */
-    virtual const char* codeToText(std::uint32_t __code) const noexcept;
+    [[nodiscard]] virtual const char* codeToText(std::uint32_t __code) const noexcept;
 
     /**
-    * @returns false if an error is found.
+    * @brief  Check if there are any new errors.
+    * 
+    * @return false if an new error is found.
     */
     bool check() noexcept;
 
     void setFail();
 
-    bool success() const noexcept;
-    bool failed() const noexcept;
+    [[nodiscard]] bool success() const noexcept;
+    [[nodiscard]] bool failed() const noexcept;
 
     /**
-    * @returns the last error text if there is one, otherwise
-    *          return nullptr.
+    * @return  The last error text if there is one, otherwise return nullptr.
     * 
-    * @warning the return value may be freed later, or it may be
-    *          static.
+    * @warning The return value may be freed later, or it may be static.
     */
-    const char* last() const noexcept;
+    [[nodiscard]] const char* last() const noexcept;
 
     /**
-    * @brief Remove last error.
+    * @brief Removes the last error.
     */
     void remove() noexcept;
 
+    /**
+     * @brief Clears all errors.
+     */
     void clear();
 
+    /**
+     * @brief Adds an new error.
+     */
     ErrorStream& operator<<(std::uint32_t __code) noexcept;
     ErrorStream& operator<<(const std::string& __text) noexcept;
 
-    static ErrorStream* global() noexcept;
+    [[nodiscard]] static ErrorStream* global() noexcept;
 
 private:
 
-    std::forward_list<Item> _M_queue;
+    ds::ForwardList<Item> _M_queue;
+    ds::LinkedList<const char*> _M_workpath;
 
-    std::vector<const char*> _M_workpath;
     std::uint32_t _M_failed;
 };
 
-class ErrorStreamGuard final
+class ErrorStreamGuard
 {
 public:
 
-    explicit ErrorStreamGuard(
+    ErrorStreamGuard(
         ErrorStream& __ref,
-        const char* __work)
+        const char* __work,
+        bool __checkAtEnd = true)
         : _M_ref(__ref)
+        , _M_checkAtEnd(__checkAtEnd)
     {
         _M_ref.begin(__work);
     }
 
     ~ErrorStreamGuard()
     {
-        _M_ref.check();
+        if (_M_checkAtEnd)
+        {
+            _M_ref.check();
+        }
+
         _M_ref.end();
     }
+
+    /*
+     * Copying and moving are not allowed.
+     */
 
     ErrorStreamGuard(const ErrorStreamGuard&) = delete;
     ErrorStreamGuard& operator=(const ErrorStreamGuard&) = delete;
 
+    ErrorStreamGuard(ErrorStreamGuard&&) = delete;
+    ErrorStreamGuard& operator=(ErrorStreamGuard&&) = delete;
+
+    inline void skipCheck() noexcept
+    { _M_checkAtEnd = false; }
+
 private:
 
     ErrorStream& _M_ref;
+    bool _M_checkAtEnd;
 };
 
 }  // namespace win

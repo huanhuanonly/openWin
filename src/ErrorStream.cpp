@@ -36,7 +36,7 @@ void ErrorStream::begin(const char* __work)
         SetLastError(ERROR_SUCCESS);
     }
 
-    _M_workpath.push_back(__work);
+    _M_workpath.append(__work);
 }
 
 void ErrorStream::end()
@@ -46,14 +46,14 @@ void ErrorStream::end()
         onFailed("Failed in this work!");
     }
 
-    _M_workpath.pop_back();
+    _M_workpath.removeLast();
 }
 
 void ErrorStream::onFailed(std::uint32_t __code)
 {
     std::lock_guard<std::mutex> _L_guard(_S_cerrMutex);
 
-    if (_M_workpath.size())
+    if (not _M_workpath.empty())
     {
         std::cerr << "In ";
         
@@ -81,7 +81,7 @@ void ErrorStream::onFailed(const std::string& __text)
 {
     std::lock_guard<std::mutex> _L_guard(_S_cerrMutex);
 
-    if (_M_workpath.size())
+    if (not _M_workpath.empty())
     {
         std::cerr << "In ";
 
@@ -160,9 +160,9 @@ const char* ErrorStream::last() const noexcept
 
 void ErrorStream::remove() noexcept
 {
-    if (!_M_queue.empty())
+    if (not _M_queue.empty())
     {
-        _M_queue.pop_front();
+        _M_queue.remove();
     }
 }
 
@@ -180,7 +180,7 @@ ErrorStream& ErrorStream::operator<<(std::uint32_t __code) noexcept
         return *this;
     }
 
-    _M_queue.push_front({ __code, std::string() });
+    _M_queue.insert({ __code, std::string() });
 
     onFailed(__code);
     return *this;
@@ -193,7 +193,7 @@ ErrorStream& ErrorStream::operator<<(const std::string& __text) noexcept
         return *this;
     }
 
-    _M_queue.push_front({ 0, __text });
+    _M_queue.insert({ 0, __text });
 
     onFailed(__text);
     return *this;

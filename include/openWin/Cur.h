@@ -41,10 +41,6 @@ public:
 
     [[nodiscard]]
     static int y() noexcept;
-
-private:
-
-    static inline float _S_dpi = Win::fromDesktop().dpi();
 };
 
 }  // namespace win

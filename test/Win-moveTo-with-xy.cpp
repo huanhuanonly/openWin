@@ -4,7 +4,7 @@ using namespace win;
 
 int main()
 {
-    Win win = Win::fromForeground();
+    Win win = Win::currentForegroundWindow();
 
     std::cout << win << '\n' << std::endl;
 

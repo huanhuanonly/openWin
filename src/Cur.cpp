@@ -22,7 +22,7 @@ using namespace win;
 
 float Cur::dpi() noexcept
 {
-    return _S_dpi;
+    return Win::currentDesktopWindow().dpi();
 }
 
 Point Cur::pos() noexcept
@@ -31,8 +31,8 @@ Point Cur::pos() noexcept
     GetCursorPos(&point);
 
     return Point(
-        static_cast<int>(point.x * _S_dpi),
-        static_cast<int>(point.y * _S_dpi));
+        static_cast<int>(point.x * dpi()),
+        static_cast<int>(point.y * dpi()));
 }
 
 int Cur::x() noexcept

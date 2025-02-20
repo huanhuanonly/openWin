@@ -24,6 +24,7 @@
 #include <map>
 #include <forward_list>
 #include <tuple>
+#include <string>
 
 #include <memory>
 
@@ -36,6 +37,13 @@ namespace win
 /// @see also https://learn.microsoft.com/en-us/windows/win32/inputdev/virtual-key-codes
 enum Key : std::uint32_t
 {
+    Key_LeftButton = 0x01,
+    Key_RightButton,
+    Key_Cancel,
+    Key_MiddleButton,
+    Key_SideButton1,
+    Key_SideButton2,
+
     Key_BackSpace = 0x08,
     Key_Tab,
     Key_Clear = 0x0C,
@@ -200,6 +208,16 @@ enum Modifiers : std::uint32_t
     WIN   = 0x08 | 0x4000
 };
 
+namespace keys
+{
+
+[[nodiscard]] std::string get_name(Modifiers __modifiers) noexcept;
+[[nodiscard]] std::string get_name(Key __key) noexcept;
+
+[[nodiscard]] bool is_extended_key(Key __key) noexcept;
+
+}  // namespace key
+
 /**
 * Use `Ctrl + Alt + Key_A` or similar to create a Shortcut.
 */
@@ -212,7 +230,17 @@ struct Shortcut
         : modifiers(__modifiers), key(__key) 
     { }
 
-    void setRepeatable(bool __enable = true) noexcept;
+    /**
+     * @brief Changes the hotkey behavior so that the keyboard auto-repeat does
+     *        not yield multiple hotkey notifications.
+     * 
+     * @return Self.
+     */
+    Shortcut& setRepeatable(bool __enable = true) noexcept;
+    [[nodiscard]] bool isRepeatable() const noexcept;
+
+    [[nodiscard]] bool contains(Modifiers __modifiers) const noexcept;
+    [[nodiscard]] bool contains(Key __key) const noexcept;
 
     [[nodiscard]] int getId() const noexcept;
     [[nodiscard]] static Shortcut fromId(int __id) noexcept;
@@ -229,6 +257,8 @@ struct Shortcut
     { return getId() < __other.getId(); }
     [[nodiscard]] bool operator<=(Shortcut __other) const noexcept
     { return getId() <= __other.getId(); }
+
+    [[nodiscard]] std::string name() const noexcept;
 };
 
 
@@ -237,6 +267,15 @@ inline Modifiers operator+(Modifiers __first, Modifiers __second) noexcept
 
 inline Shortcut operator+(Modifiers __modifiers, Key __key) noexcept
 { return Shortcut(__modifiers, __key); }
+
+
+namespace keys
+{
+
+[[nodiscard]] inline std::string get_name(Shortcut __shortcut) noexcept
+{ return __shortcut.name(); }
+
+}
 
 
 class GlobalShortcutManager
@@ -262,11 +301,10 @@ public:
     static bool isRegistered(Shortcut __shortcut) noexcept;
 
     /**
-    * @brief Register a global shortcut When the shortcut
-    *        key is pressed, the bound function is called.
+    * @brief Registers a global shortcut When the shortcut key is pressed, the
+    *        bound function is called.
     * 
-    * @param __enable If false, unregister and unbind the
-    *                 global shortcut.
+    * @param __enable If false, unregisters and unbinds the global shortcut.
     */
     void bindShortcutToFunction(
         Shortcut __shortcut,
@@ -275,7 +313,7 @@ public:
         bool __enable = true) noexcept;
 
     /**
-    * @returns nullptr if the __shortcut is not bound.
+    * @return nullptr if the __shortcut is not bound.
     */
     [[nodiscard]]
     ShortcutFunction functionFromBoundShortcut(

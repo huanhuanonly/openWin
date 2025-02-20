@@ -9,7 +9,7 @@
 # Created by Yang Huanhuan on January 19, 2025, 17:39:58
 # ----------------------------------------------------------------------------
 
-set (CURRENT_TEST_SOURCE_FILE "Win-moveTo-with-xy.cpp")
+set (CURRENT_TEST_SOURCE_FILE "keys-get_name.cpp")
 
 add_executable (openWin-test ${CURRENT_TEST_SOURCE_FILE})
 
